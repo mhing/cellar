@@ -34,13 +34,15 @@ npm install
 npx wrangler login
 ```
 
-### 2. Create the KV store
+### 2. The KV store
+
+`wrangler.toml` already binds `CELLAR_KV` to the namespace in this account (`account_id` is set there too), so there's nothing to do here. Pushing to `main` deploys the site and Workers Builds prints its address, e.g. `https://cellar.<your-subdomain>.workers.dev`. **Don't share it yet.** Until step 4 is done the API refuses every request, so the page loads but won't show any data.
+
+If you're setting this up in a *different* Cloudflare account (a fork, say), create your own namespace and swap in its id and your `account_id`:
 
 ```bash
 npx wrangler kv namespace create CELLAR_KV
 ```
-
-Copy the `id` it prints into `wrangler.toml` in place of `REPLACE_WITH_YOUR_KV_NAMESPACE_ID`. Commit and push to `main`: Workers Builds deploys the site and prints its address, e.g. `https://cellar.<your-subdomain>.workers.dev`. **Don't share it yet.** Until step 4 is done the API refuses every request, so the page loads but won't show any data.
 
 ### 3. Put Cloudflare Access in front of the site
 

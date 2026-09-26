@@ -12,9 +12,9 @@ directory = "./public"
 binding = "ASSETS"
 run_worker_first = ["/api/*"]
 
-# KV namespace that stores the ledger. Create it with:
-#   npx wrangler kv namespace create CELLAR_KV
-# then paste the id it prints below.
+# KV namespace that stores the ledger. Deploying to a different account?
+# Create your own with `npx wrangler kv namespace create CELLAR_KV` and
+# replace the id (and account_id above).
 [[kv_namespaces]]
 binding = "CELLAR_KV"
 id = "e10bc28d1076464baf26501747047605"
