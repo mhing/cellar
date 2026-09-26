@@ -100,6 +100,9 @@ export const onRequestPut = (context) =>
 
     const data = clean(body.data);
     delete data.viewer;
+    // clean() caps keys and sizes; make sure it didn't drop anything required.
+    const cleaned = validate({ baseVersion: body.baseVersion, data });
+    if (cleaned) return json({ error: `After cleaning: ${cleaned}` }, 400);
     const next = {
       ...data,
       schema: current.schema || 1,

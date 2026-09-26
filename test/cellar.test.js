@@ -128,6 +128,16 @@ describe('PUT /api/cellar', () => {
     expect({}.polluted).toBeUndefined();
   });
 
+  it('rejects a body whose required lists would be dropped by the key cap', async () => {
+    const padding = Object.fromEntries(Array.from({ length: 120 }, (_, i) => [`pad${i}`, 1]));
+    const data = { ...padding, ...validData() }; // required lists come after 120 junk keys
+    const kv = makeKV();
+    const res = await put({ baseVersion: seed.version, data }, { ...baseEnv(), CELLAR_KV: kv });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/after cleaning/i);
+    expect(kv.puts).toHaveLength(0);
+  });
+
   it('does not leak internal error details on 500', async () => {
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
     const res = await api.onRequestGet({ request: authedRequest(URL, token), env: baseEnv() }); // no KV binding
