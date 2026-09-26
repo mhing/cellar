@@ -81,6 +81,14 @@ Visit the site. You should be asked for your email and a one-time code, and then
 
 *Why two layers?* Access blocks anyone not on your list before they reach the site. The API also checks Access's signed login token itself, so it stays locked even if a URL is ever left uncovered by the Access policy.
 
+## Alternative: Git-based deploys from the Cloudflare dashboard
+
+Instead of `wrangler pages deploy` you can connect this GitHub repo to Pages (**Workers & Pages → Create → Pages → Connect to Git**). Settings: framework preset *None*, build command empty, build output directory `public`. Every push to `main` then deploys production and every other branch gets a preview URL.
+
+Because `wrangler.toml` is committed, Pages reads the KV binding and `[vars]` from it on each build, so steps 2 and 5 above still apply — fill in the KV namespace id and the two `[vars]` in `wrangler.toml` and push. None of those values are secrets (the AUD tag and team domain are public identifiers).
+
+Trade-offs: Git deploys are hands-off and give you preview builds, but only `main` is production, so anything merged goes live. `wrangler pages deploy` deploys exactly what's on your machine, when you choose. Don't mix the two on one project.
+
 ## Running it locally
 
 ```bash
@@ -88,7 +96,15 @@ cp .dev.vars.example .dev.vars   # sets DEV_ALLOW_UNAUTH=true, local only
 npm run dev                      # http://localhost:8788
 ```
 
-Local data is stored under `.wrangler/` and never touches your live ledger. **Never add `DEV_ALLOW_UNAUTH` to the live site's settings.**
+Local data is stored under `.wrangler/` and never touches your live ledger. **Never add `DEV_ALLOW_UNAUTH` to the live site's settings** — it disables the login check entirely.
+
+## Tests
+
+```bash
+npm test
+```
+
+Vitest tests in `test/` cover the Access token verification and the `/api/cellar` handler (version conflicts, input validation, backups). They run in GitHub Actions on every push and pull request.
 
 ## Backups and restoring
 
