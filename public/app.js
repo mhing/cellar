@@ -518,7 +518,7 @@
         const base = TABLES[target].emptyRow();
         const prefill = isRed
           ? { ...base, vineyard: row.house, bottle: row.cuvee, style: row.style, category: row.category || 'aging' }
-          : { ...base, house: row.house, cuvee: row.cuvee, style: row.style, category: row.category || 'everyday', vintage: (row.cuvee.match(/\b(19|20)\d{2}\b/) || ['NV'])[0] };
+          : { ...base, house: row.house, cuvee: row.cuvee, style: row.style, category: row.category || 'everyday', vintage: (String(row.cuvee || '').match(/\b(19|20)\d{2}\b/) || ['NV'])[0] };
         openEditor({
           tableId: target, row: prefill, isNew: true,
           title: `Add ${row.house} to ${TABLES[target].title}`,

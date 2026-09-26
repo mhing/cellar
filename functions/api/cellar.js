@@ -33,13 +33,19 @@ function clean(value, depth = 0) {
   if (Array.isArray(value)) return value.slice(0, 1000).map((v) => clean(v, depth + 1));
   if (typeof value === 'object') {
     const out = {};
-    for (const [k, v] of Object.entries(value).slice(0, 100)) out[String(k).slice(0, 64)] = clean(v, depth + 1);
+    for (const [k, v] of Object.entries(value).slice(0, 100)) {
+      if (k === '__proto__' || k === 'constructor' || k === 'prototype') continue;
+      out[String(k).slice(0, 64)] = clean(v, depth + 1);
+    }
     return out;
   }
   return null;
 }
 
-function validate(data) {
+function validate(body) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return 'Body must be a JSON object';
+  if (!Number.isInteger(body.baseVersion)) return 'baseVersion must be an integer';
+  const data = body.data;
   if (!data || typeof data !== 'object' || Array.isArray(data)) return 'Body must include a data object';
   for (const list of LISTS) {
     if (!Array.isArray(data[list])) return `data.${list} must be an array`;
@@ -58,7 +64,8 @@ async function withAuth(context, handler) {
     return await handler(user);
   } catch (err) {
     if (err instanceof AuthError) return json({ error: err.message }, err.status);
-    return json({ error: 'Server error', detail: String(err && err.message ? err.message : err) }, 500);
+    console.error('cellar api error:', err);
+    return json({ error: 'Server error' }, 500);
   }
 }
 
@@ -79,7 +86,7 @@ export const onRequestPut = (context) =>
     } catch {
       return json({ error: 'Invalid JSON' }, 400);
     }
-    const problem = validate(body && body.data);
+    const problem = validate(body);
     if (problem) return json({ error: problem }, 400);
 
     const current = await load(context.env);

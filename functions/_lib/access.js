@@ -11,6 +11,10 @@
 
 let certCache = { keys: null, fetchedAt: 0, team: null };
 const CERT_TTL_MS = 60 * 60 * 1000;
+// Minimum gap between forced refetches (unknown kid), so a flood of bogus
+// tokens can't turn every request into a call to the certs endpoint.
+const CERT_REFETCH_MIN_MS = 60 * 1000;
+const CLOCK_SKEW_S = 60;
 
 function b64urlToBytes(str) {
   const pad = '='.repeat((4 - (str.length % 4)) % 4);
@@ -81,8 +85,8 @@ export async function verifyAccess(request, env) {
 
   let keys = await getKeys(team);
   let jwk = keys.find((k) => k.kid === header.kid);
-  if (!jwk) {
-    // Keys rotate; refetch once.
+  if (!jwk && Date.now() - certCache.fetchedAt > CERT_REFETCH_MIN_MS) {
+    // Keys rotate; refetch once, but not more often than CERT_REFETCH_MIN_MS.
     certCache.fetchedAt = 0;
     keys = await getKeys(team);
     jwk = keys.find((k) => k.kid === header.kid);
@@ -104,12 +108,14 @@ export async function verifyAccess(request, env) {
   );
   if (!valid) throw new AuthError('Invalid token signature');
 
+  // exp and iss are mandatory: a token without them must not be accepted.
   const now = Math.floor(Date.now() / 1000);
-  if (payload.exp && payload.exp < now) throw new AuthError('Session expired');
-  if (payload.nbf && payload.nbf > now + 60) throw new AuthError('Token not yet valid');
+  if (typeof payload.exp !== 'number') throw new AuthError('Token has no expiry');
+  if (payload.exp < now - CLOCK_SKEW_S) throw new AuthError('Session expired');
+  if (typeof payload.nbf === 'number' && payload.nbf > now + CLOCK_SKEW_S) throw new AuthError('Token not yet valid');
   const auds = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
   if (!auds.includes(aud)) throw new AuthError('Token audience mismatch', 403);
-  if (payload.iss && payload.iss !== `https://${team}`) throw new AuthError('Token issuer mismatch', 403);
+  if (payload.iss !== `https://${team}`) throw new AuthError('Token issuer mismatch', 403);
 
   return { email: payload.email || payload.common_name || 'unknown' };
 }
