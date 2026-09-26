@@ -362,9 +362,16 @@
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const saved = await res.json();
-      state.doc.version = saved.version;
-      state.doc.updatedAt = saved.updatedAt;
-      state.doc.updatedBy = saved.updatedBy;
+      if (state.pending) {
+        // Another edit is queued; it will resubmit the local doc, so only take the version.
+        state.doc.version = saved.version;
+        state.doc.updatedAt = saved.updatedAt;
+        state.doc.updatedBy = saved.updatedBy;
+      } else {
+        // Adopt the server's copy: it may have trimmed or normalised what we sent.
+        state.doc = saved;
+        render();
+      }
       setStatus(`Saved ${new Date(saved.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
     } catch (err) {
       setStatus('Save failed — check connection', true);
