@@ -3,11 +3,14 @@
   "private": true,
   "version": "1.0.0",
   "description": "Private, editable cellar ledger on Cloudflare Pages + Access",
+  "type": "module",
   "scripts": {
     "dev": "wrangler pages dev",
-    "deploy": "wrangler pages deploy"
+    "deploy": "wrangler pages deploy",
+    "test": "vitest run"
   },
   "devDependencies": {
+    "vitest": "^3.0.0",
     "wrangler": "^4.0.0"
   }
 }
