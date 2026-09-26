@@ -23,3 +23,14 @@ id = "e10bc28d1076464baf26501747047605"
 [vars]
 ACCESS_TEAM_DOMAIN = "matthew-hinger.cloudflareaccess.com"
 ACCESS_AUD = "01e411a04fc70fcbabe52d269c2b578ac10a56a30ea10d6c2d171502ac2bd791"
+
+# Branch previews (Workers Builds deploys every non-main push to a preview
+# URL). They get their own empty KV namespace so a preview can never touch
+# the live ledger; Access settings are shared.
+[previews.vars]
+ACCESS_TEAM_DOMAIN = "matthew-hinger.cloudflareaccess.com"
+ACCESS_AUD = "01e411a04fc70fcbabe52d269c2b578ac10a56a30ea10d6c2d171502ac2bd791"
+
+[[previews.kv_namespaces]]
+binding = "CELLAR_KV"
+id = "f1c28fa62d52413c959b826a3eca1f83"
