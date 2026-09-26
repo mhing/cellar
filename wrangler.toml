@@ -1,7 +1,15 @@
-# Cloudflare Pages project config
-name = "cellar-ledger"
-pages_build_output_dir = "public"
+# Cloudflare Worker config. The name must match the Worker connected to this
+# repo in the dashboard (Workers Builds deploys on every push to main).
+name = "cellar"
+main = "src/index.js"
 compatibility_date = "2025-09-01"
+
+# Static site. Requests to /api/* always run the Worker; everything else is
+# served from public/ (404 if the file doesn't exist).
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
 
 # KV namespace that stores the ledger. Create it with:
 #   npx wrangler kv namespace create CELLAR_KV
@@ -9,3 +17,8 @@ compatibility_date = "2025-09-01"
 [[kv_namespaces]]
 binding = "CELLAR_KV"
 id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+
+# Cloudflare Access settings (README step 4). Neither value is a secret.
+# [vars]
+# ACCESS_TEAM_DOMAIN = "yourteam.cloudflareaccess.com"
+# ACCESS_AUD = "paste-the-AUD-tag-here"

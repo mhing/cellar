@@ -1,15 +1,16 @@
 # Cellar Ledger
 
-A private, editable version of the Cellar Ledger, hosted on **Cloudflare Pages**, protected by **Cloudflare Access** (email login), with edits saved to **Cloudflare KV**. Everything used here is on Cloudflare's free plans.
+A private, editable version of the Cellar Ledger, hosted on **Cloudflare Workers** (static site + a small API), protected by **Cloudflare Access** (email login), with edits saved to **Cloudflare KV**. Everything used here is on Cloudflare's free plans.
 
 ```
 public/                 the site (index.html, styles.css, app.js — vanilla JS, no build step)
+src/index.js            Worker entry: routes /api/cellar to the handlers, serves public/ otherwise
 functions/
 ├── api/cellar.js       GET/PUT the ledger (saves to KV, keeps 90-day backups)
 └── _lib/access.js      verifies the Cloudflare Access login token
 data/seed.json          starting data, exported from the current ledger
-test/                   vitest tests for the two Functions (run with `npm test`)
-wrangler.toml           Pages + KV configuration
+test/                   vitest tests (run with `npm test`)
+wrangler.toml           Worker, assets and KV configuration
 package.json
 .dev.vars.example       local-only settings
 ```
@@ -24,7 +25,7 @@ package.json
 
 ## Deploy (about 20–30 minutes, one time)
 
-You need a free Cloudflare account and Node.js 18 or newer on your computer.
+The repo is connected to Cloudflare **Workers Builds**: every push to `main` deploys production, and other branches get a preview URL. You need a free Cloudflare account and Node.js 18 or newer on your computer for the one-off setup below.
 
 ### 1. Install and log in
 
@@ -39,31 +40,22 @@ npx wrangler login
 npx wrangler kv namespace create CELLAR_KV
 ```
 
-Copy the `id` it prints into `wrangler.toml` in place of `REPLACE_WITH_YOUR_KV_NAMESPACE_ID`.
+Copy the `id` it prints into `wrangler.toml` in place of `REPLACE_WITH_YOUR_KV_NAMESPACE_ID`. Commit and push to `main`: Workers Builds deploys the site and prints its address, e.g. `https://cellar.<your-subdomain>.workers.dev`. **Don't share it yet.** Until step 4 is done the API refuses every request, so the page loads but won't show any data.
 
-### 3. Create the Pages project and deploy
-
-```bash
-npx wrangler pages project create cellar-ledger --production-branch main
-npx wrangler pages deploy
-```
-
-Wrangler prints your site address, e.g. `https://cellar-ledger.pages.dev`. **Don't share it yet.** Until step 5 is done the API refuses every request, so the page loads but won't show any data.
-
-### 4. Put Cloudflare Access in front of the site
+### 3. Put Cloudflare Access in front of the site
 
 In the Cloudflare dashboard:
 
 1. Open **Zero Trust**. If it's your first time, pick a team name (this becomes `yourteam.cloudflareaccess.com`) and choose the **Free** plan.
 2. Go to **Access → Applications → Add an application → Self-hosted**.
-3. Add a public hostname for your site's domain, e.g. `cellar-ledger.pages.dev`. Add a second one for preview deployments: `*.cellar-ledger.pages.dev`.
+3. Add a public hostname for your site's domain, e.g. `cellar.<your-subdomain>.workers.dev`. If you use preview deployments, add a second one for them: `*-cellar.<your-subdomain>.workers.dev`.
 4. Add a policy: **Action: Allow**, **Include → Emails**, and list the email addresses that should get in.
 5. For login methods, **One-time PIN** (a code sent by email) works with no extra setup. You can add Google login later if you prefer.
 6. Save, then open the application's **Overview** and copy the **Application Audience (AUD) tag**.
 
-### 5. Tell the site about Access, then redeploy
+### 4. Tell the site about Access, then redeploy
 
-Add this to the bottom of `wrangler.toml`, using your own values:
+Uncomment the `[vars]` block at the bottom of `wrangler.toml` and fill in your own values:
 
 ```toml
 [vars]
@@ -71,23 +63,15 @@ ACCESS_TEAM_DOMAIN = "yourteam.cloudflareaccess.com"
 ACCESS_AUD = "paste-the-AUD-tag-here"
 ```
 
-Then redeploy:
+Neither value is a secret, so committing them is fine. Push to `main` to redeploy. Visit the site: you should be asked for your email and a one-time code, and then the ledger appears.
 
-```bash
-npx wrangler pages deploy
-```
-
-Visit the site. You should be asked for your email and a one-time code, and then the ledger appears.
+Because `wrangler.toml` is committed, every deploy applies the bindings and vars from it; settings changed only in the dashboard are overwritten on the next build, so keep them in the file.
 
 *Why two layers?* Access blocks anyone not on your list before they reach the site. The API also checks Access's signed login token itself, so it stays locked even if a URL is ever left uncovered by the Access policy.
 
-## Alternative: Git-based deploys from the Cloudflare dashboard
+### Deploying from your machine instead
 
-Instead of `wrangler pages deploy` you can connect this GitHub repo to Pages (**Workers & Pages → Create → Pages → Connect to Git**). Settings: framework preset *None*, build command empty, build output directory `public`. Every push to `main` then deploys production and every other branch gets a preview URL.
-
-Because `wrangler.toml` is committed, Pages reads the KV binding and `[vars]` from it on each build, so steps 2 and 5 above still apply — fill in the KV namespace id and the two `[vars]` in `wrangler.toml` and push. None of those values are secrets (the AUD tag and team domain are public identifiers).
-
-Trade-offs: Git deploys are hands-off and give you preview builds, but only `main` is production, so anything merged goes live. `wrangler pages deploy` deploys exactly what's on your machine, when you choose. Don't mix the two on one project.
+`npx wrangler deploy` (or `npm run deploy`) deploys exactly what's on your machine. Use one method or the other for a given project — mixing them just means the latest push or deploy wins.
 
 ## Running it locally
 

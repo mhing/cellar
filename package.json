@@ -1,12 +1,12 @@
 {
-  "name": "cellar-ledger",
+  "name": "cellar",
   "private": true,
   "version": "1.0.0",
-  "description": "Private, editable cellar ledger on Cloudflare Pages + Access",
+  "description": "Private, editable cellar ledger on Cloudflare Workers + Access",
   "type": "module",
   "scripts": {
-    "dev": "wrangler pages dev",
-    "deploy": "wrangler pages deploy",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
     "test": "vitest run"
   },
   "devDependencies": {
