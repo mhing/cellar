@@ -20,6 +20,6 @@ binding = "CELLAR_KV"
 id = "e10bc28d1076464baf26501747047605"
 
 # Cloudflare Access settings (README step 4). Neither value is a secret.
-# [vars]
-# ACCESS_TEAM_DOMAIN = "yourteam.cloudflareaccess.com"
-# ACCESS_AUD = "paste-the-AUD-tag-here"
+[vars]
+ACCESS_TEAM_DOMAIN = "matthew-hinger.cloudflareaccess.com"
+ACCESS_AUD = "01e411a04fc70fcbabe52d269c2b578ac10a56a30ea10d6c2d171502ac2bd791"
