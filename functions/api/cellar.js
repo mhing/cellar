@@ -77,8 +77,9 @@ export const onRequestGet = (context) =>
 
 export const onRequestPut = (context) =>
   withAuth(context, async (user) => {
-    const raw = await context.request.text();
-    if (raw.length > MAX_BYTES) return json({ error: 'Payload too large' }, 413);
+    const buf = await context.request.arrayBuffer();
+    if (buf.byteLength > MAX_BYTES) return json({ error: 'Payload too large' }, 413);
+    const raw = new TextDecoder().decode(buf);
 
     let body;
     try {
@@ -89,6 +90,9 @@ export const onRequestPut = (context) =>
     const problem = validate(body);
     if (problem) return json({ error: problem }, 400);
 
+    // Read-then-write: KV has no compare-and-swap, so two saves inside its
+    // consistency window can both pass this check. Best-effort by design; see
+    // "Limits worth knowing" in the README.
     const current = await load(context.env);
     if (body.baseVersion !== current.version) {
       return json({ error: 'conflict', current }, 409);

@@ -73,6 +73,12 @@ describe('verifyAccess', () => {
     await expectAuthError(verifyAccess(req({ 'Cf-Access-Jwt-Assertion': token }), env), 401, /unknown signing key/i);
   });
 
+  it('rejects a token whose signature is not valid base64url with 401, not 500', async () => {
+    const token = await signToken(keyPair, validClaims());
+    const [h, p] = token.split('.');
+    await expectAuthError(verifyAccess(req({ 'Cf-Access-Jwt-Assertion': `${h}.${p}.!!!` }), env), 401, /malformed/i);
+  });
+
   it('rejects a tampered payload', async () => {
     const token = await signToken(keyPair, validClaims());
     const [h, , s] = token.split('.');
@@ -110,6 +116,28 @@ describe('verifyAccess', () => {
   it('bypasses verification only when DEV_ALLOW_UNAUTH is "true"', async () => {
     await expect(verifyAccess(req({}), { DEV_ALLOW_UNAUTH: 'true' })).resolves.toEqual({ email: 'dev@localhost', dev: true });
     await expectAuthError(verifyAccess(req({}), { ...env, DEV_ALLOW_UNAUTH: 'yes' }), 401);
+  });
+
+  it('shares one certs fetch across concurrent requests', async () => {
+    const fetchMock = mockCerts(vi, [keyPair.jwk]);
+    const token = await signToken(keyPair, validClaims());
+    const results = await Promise.all(Array.from({ length: 5 }, () => verifyAccess(req({ 'Cf-Access-Jwt-Assertion': token }), env)));
+    expect(results.every((u) => u.email === 'alice@example.com')).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('throttles forced refetches from concurrent unknown-kid tokens', async () => {
+    const fetchMock = mockCerts(vi, [keyPair.jwk]);
+    await verifyAccess(req({ 'Cf-Access-Jwt-Assertion': await signToken(keyPair, validClaims()) }), env);
+    const bogus = await signToken(otherPair, validClaims());
+    vi.useFakeTimers({ now: Date.now() + 61_000, toFake: ['Date'] });
+    try {
+      const results = await Promise.allSettled(Array.from({ length: 5 }, () => verifyAccess(req({ 'Cf-Access-Jwt-Assertion': bogus }), env)));
+      expect(results.every((r) => r.status === 'rejected')).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(2); // initial + one shared forced refetch
   });
 
   it('caches certs and refetches once on an unknown kid after rotation', async () => {

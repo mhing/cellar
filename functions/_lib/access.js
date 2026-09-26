@@ -9,7 +9,7 @@
 // Local development only:
 //   DEV_ALLOW_UNAUTH = "true"  skips verification (set in .dev.vars, never in production)
 
-let certCache = { keys: null, fetchedAt: 0, team: null };
+let certCache = { keys: null, fetchedAt: 0, team: null, inflight: null };
 const CERT_TTL_MS = 60 * 60 * 1000;
 // Minimum gap between forced refetches (unknown kid), so a flood of bogus
 // tokens can't turn every request into a call to the certs endpoint.
@@ -38,16 +38,26 @@ function getCookie(request, name) {
   return null;
 }
 
-async function getKeys(team) {
+async function getKeys(team, force = false) {
   const now = Date.now();
-  if (certCache.keys && certCache.team === team && now - certCache.fetchedAt < CERT_TTL_MS) {
+  if (!force && certCache.keys && certCache.team === team && now - certCache.fetchedAt < CERT_TTL_MS) {
     return certCache.keys;
   }
-  const res = await fetch(`https://${team}/cdn-cgi/access/certs`);
-  if (!res.ok) throw new Error('Could not fetch Access certs');
-  const body = await res.json();
-  certCache = { keys: body.keys || [], fetchedAt: now, team };
-  return certCache.keys;
+  // Concurrent requests share one fetch rather than each hitting the certs endpoint.
+  if (certCache.inflight && certCache.team === team) return certCache.inflight;
+  const inflight = (async () => {
+    const res = await fetch(`https://${team}/cdn-cgi/access/certs`);
+    if (!res.ok) throw new Error('Could not fetch Access certs');
+    const body = await res.json();
+    certCache = { keys: body.keys || [], fetchedAt: Date.now(), team, inflight: null };
+    return certCache.keys;
+  })();
+  certCache = { ...certCache, team, inflight };
+  try {
+    return await inflight;
+  } finally {
+    if (certCache.inflight === inflight) certCache.inflight = null;
+  }
 }
 
 export class AuthError extends Error {
@@ -87,8 +97,9 @@ export async function verifyAccess(request, env) {
   let jwk = keys.find((k) => k.kid === header.kid);
   if (!jwk && Date.now() - certCache.fetchedAt > CERT_REFETCH_MIN_MS) {
     // Keys rotate; refetch once, but not more often than CERT_REFETCH_MIN_MS.
-    certCache.fetchedAt = 0;
-    keys = await getKeys(team);
+    // The timestamp is bumped before awaiting so concurrent requests see the throttle.
+    certCache.fetchedAt = Date.now();
+    keys = await getKeys(team, true);
     jwk = keys.find((k) => k.kid === header.kid);
   }
   if (!jwk) throw new AuthError('Unknown signing key');
@@ -100,12 +111,13 @@ export async function verifyAccess(request, env) {
     false,
     ['verify']
   );
-  const valid = await crypto.subtle.verify(
-    'RSASSA-PKCS1-v1_5',
-    key,
-    b64urlToBytes(s),
-    new TextEncoder().encode(`${h}.${p}`)
-  );
+  let sig;
+  try {
+    sig = b64urlToBytes(s);
+  } catch {
+    throw new AuthError('Malformed token');
+  }
+  const valid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, sig, new TextEncoder().encode(`${h}.${p}`));
   if (!valid) throw new AuthError('Invalid token signature');
 
   // exp and iss are mandatory: a token without them must not be accepted.

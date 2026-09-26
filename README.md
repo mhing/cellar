@@ -25,7 +25,7 @@ package.json
 
 ## Deploy (about 20–30 minutes, one time)
 
-The repo is connected to Cloudflare **Workers Builds**: every push to `main` deploys production, and other branches get a preview URL. You need a free Cloudflare account and Node.js 18 or newer on your computer for the one-off setup below.
+The repo is connected to Cloudflare **Workers Builds**: every push to `main` deploys production, and other branches get a preview URL. You need a free Cloudflare account and Node.js 22 or newer (Wrangler 4 requires it) on your computer for the one-off setup below.
 
 ### 1. Install and log in
 

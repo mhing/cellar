@@ -99,9 +99,12 @@ describe('PUT /api/cellar', () => {
     expect(kv.puts).toHaveLength(0);
   });
 
-  it('returns 413 for an oversized payload', async () => {
+  it('returns 413 for an oversized payload, measured in bytes', async () => {
     const res = await put('x'.repeat(512 * 1024 + 1), { ...baseEnv(), CELLAR_KV: makeKV() });
     expect(res.status).toBe(413);
+    // 300k code units of a 2-byte character is ~600 KiB on the wire.
+    const multibyte = await put('é'.repeat(300 * 1024), { ...baseEnv(), CELLAR_KV: makeKV() });
+    expect(multibyte.status).toBe(413);
   });
 
   it('strips viewer and ignores client-supplied version/updatedBy', async () => {
