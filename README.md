@@ -112,6 +112,7 @@ To start again from the original seed, delete the `cellar` key. The site falls b
 - **KV free tier** (as of September 2026): 100,000 reads and 1,000 writes per day. Each save uses 2 writes, so that's roughly 500 edits a day, far more than a cellar needs.
 - **KV is eventually consistent.** Changes can take up to a minute to appear everywhere. If two people edit within that window from different places, the conflict check is best-effort. For a household that's fine. If it ever matters, the same API can be moved to Cloudflare D1, a database with immediate consistency.
 - **Access free plan**: up to 50 users.
+- **Preview deployments use the live ledger.** Workers Builds deploys other branches to preview URLs with the same KV binding, so a save made on a preview writes to the production ledger. Keep previews behind the same Access policy (step 3), and treat them as a way to check UI changes, not as a sandbox. If you want previews isolated, create a second namespace (`npx wrangler kv namespace create CELLAR_KV_PREVIEW`) and add an `[env.preview]` block in `wrangler.toml` that binds `CELLAR_KV` to it.
 
 ## Customising
 

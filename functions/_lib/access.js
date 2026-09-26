@@ -3,7 +3,7 @@
 // second check so the API can't be reached by bypassing Access (e.g. via *.pages.dev
 // if it isn't covered by the Access application).
 //
-// Required environment variables (set in the Pages project settings):
+// Required environment variables (set under [vars] in wrangler.toml; see README):
 //   ACCESS_TEAM_DOMAIN  e.g. "yourteam.cloudflareaccess.com"
 //   ACCESS_AUD          the Application Audience (AUD) tag from the Access application
 // Local development only:
