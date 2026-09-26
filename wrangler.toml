@@ -1,6 +1,7 @@
 # Cloudflare Worker config. The name must match the Worker connected to this
 # repo in the dashboard (Workers Builds deploys on every push to main).
 name = "cellar"
+account_id = "eab1e74a57fef868872e3daa196f6c19"
 main = "src/index.js"
 compatibility_date = "2025-09-01"
 
