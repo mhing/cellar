@@ -55,17 +55,11 @@ In the Cloudflare dashboard:
 5. For login methods, **One-time PIN** (a code sent by email) works with no extra setup. You can add Google login later if you prefer.
 6. Save, then open the application's **Overview** and copy the **Application Audience (AUD) tag**.
 
-### 4. Tell the site about Access, then redeploy
+### 4. Tell the site about Access
 
-Uncomment the `[vars]` block at the bottom of `wrangler.toml` and fill in your own values:
+The `[vars]` block in `wrangler.toml` already holds this account's Access team domain and Application Audience (AUD) tag, so for this repo there's nothing to change. Neither value is a secret.
 
-```toml
-[vars]
-ACCESS_TEAM_DOMAIN = "yourteam.cloudflareaccess.com"
-ACCESS_AUD = "paste-the-AUD-tag-here"
-```
-
-Neither value is a secret, so committing them is fine. Push to `main` to redeploy. Visit the site: you should be asked for your email and a one-time code, and then the ledger appears.
+Deploying to a *different* account? Replace both values with your own team domain and the AUD tag from step 3 (in `[vars]` and again in `[previews.vars]`), then push to `main`. Visit the site: you should be asked for your email and a one-time code, and then the ledger appears.
 
 Because `wrangler.toml` is committed, every deploy applies the bindings and vars from it; settings changed only in the dashboard are overwritten on the next build, so keep them in the file.
 
@@ -114,7 +108,7 @@ To start again from the original seed, delete the `cellar` key. The site falls b
 - **KV free tier** (as of September 2026): 100,000 reads and 1,000 writes per day. Each save uses 2 writes, so that's roughly 500 edits a day, far more than a cellar needs.
 - **KV is eventually consistent.** Changes can take up to a minute to appear everywhere. If two people edit within that window from different places, the conflict check is best-effort. For a household that's fine. If it ever matters, the same API can be moved to Cloudflare D1, a database with immediate consistency.
 - **Access free plan**: up to 50 users.
-- **Preview deployments are sandboxed.** Workers Builds deploys other branches to preview URLs, and the `[previews]` block in `wrangler.toml` gives them their own empty KV namespace (`CELLAR_KV_PREVIEW`, which starts from `data/seed.json`), so nothing done on a preview reaches the live ledger. Preview URLs are only usable if the Access application also covers `*-cellar.<your-subdomain>.workers.dev`; otherwise their API returns 401.
+- **Preview deployments are sandboxed.** Workers Builds deploys other branches to preview URLs, and the `[previews]` block in `wrangler.toml` binds `CELLAR_KV` to a separate, empty namespace (titled `CELLAR_KV_PREVIEW`; it starts from `data/seed.json`), so nothing done on a preview reaches the live ledger. Preview URLs are only usable if the Access application also covers `*-cellar.<your-subdomain>.workers.dev`; otherwise their API returns 401.
 
 ## Customising
 
