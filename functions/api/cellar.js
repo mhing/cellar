@@ -12,6 +12,10 @@ const KEY = 'cellar';
 const BACKUP_TTL_SECONDS = 90 * 24 * 60 * 60;
 const MAX_BYTES = 512 * 1024;
 const LISTS = ['champagne', 'reds', 'nextUp', 'premier', 'everyday', 'shelves'];
+// Added later; absent in older documents, so optional.
+const OPTIONAL_LISTS = ['ratings', 'redFillers'];
+const CELLAR_LISTS = ['champagne', 'reds'];
+const SCORES = ['matt', 'rachael'];
 
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -47,12 +51,31 @@ function validate(body) {
   if (!Number.isInteger(body.baseVersion)) return 'baseVersion must be an integer';
   const data = body.data;
   if (!data || typeof data !== 'object' || Array.isArray(data)) return 'Body must include a data object';
-  for (const list of LISTS) {
+  for (const list of [...LISTS, ...OPTIONAL_LISTS]) {
+    if (data[list] === undefined && OPTIONAL_LISTS.includes(list)) continue;
     if (!Array.isArray(data[list])) return `data.${list} must be an array`;
     for (const item of data[list]) {
       if (!item || typeof item !== 'object' || typeof item.id !== 'string' || !item.id) {
         return `Every item in data.${list} needs a string id`;
       }
+    }
+  }
+  for (const list of CELLAR_LISTS) {
+    for (const item of data[list]) {
+      if (item.qty !== undefined && (!Number.isInteger(item.qty) || item.qty < 0)) {
+        return `data.${list} qty must be a whole number of 0 or more`;
+      }
+    }
+  }
+  for (const item of data.ratings || []) {
+    for (const k of SCORES) {
+      const v = item[k];
+      if (v !== undefined && v !== null && (typeof v !== 'number' || v < 0 || v > 5)) {
+        return `ratings.${k} must be a number from 0 to 5, or null`;
+      }
+    }
+    if (SCORES.every((k) => item[k] === undefined || item[k] === null)) {
+      return 'Every rating needs at least one score';
     }
   }
   return null;

@@ -99,6 +99,49 @@ describe('PUT /api/cellar', () => {
     expect(kv.puts).toHaveLength(0);
   });
 
+  it('accepts an old document without the ratings and redFillers lists', async () => {
+    const data = validData();
+    expect(data.ratings).toBeUndefined();
+    const res = await put({ baseVersion: seed.version, data }, { ...baseEnv(), CELLAR_KV: makeKV() });
+    expect(res.status).toBe(200);
+  });
+
+  it('accepts ratings, redFillers and qty when valid', async () => {
+    const data = { ...validData(), ratings: [{ id: 'd-1', house: 'Ruinart', cuvee: 'R', matt: 4.2, rachael: null, drankAt: '2026-10-20' }], redFillers: [{ id: 'rf-1', house: 'Guigal', cuvee: 'CdP' }] };
+    data.champagne[0].qty = 3;
+    const res = await put({ baseVersion: seed.version, data }, { ...baseEnv(), CELLAR_KV: makeKV() });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ratings).toHaveLength(1);
+    expect(body.redFillers).toHaveLength(1);
+    expect(body.champagne[0].qty).toBe(3);
+  });
+
+  it.each([
+    ['ratings is not an array', { ratings: {} }, /data\.ratings must be an array/],
+    ['a rating has no id', { ratings: [{ matt: 4 }] }, /string id/],
+    ['a score is above 5', { ratings: [{ id: 'd', matt: 5.5 }] }, /ratings\.matt/],
+    ['a score is negative', { ratings: [{ id: 'd', rachael: -1 }] }, /ratings\.rachael/],
+    ['a score is a string', { ratings: [{ id: 'd', matt: '4' }] }, /ratings\.matt/],
+    ['both scores are null', { ratings: [{ id: 'd', matt: null, rachael: null }] }, /at least one score/],
+    ['both scores are missing', { ratings: [{ id: 'd' }] }, /at least one score/],
+    ['redFillers item has no id', { redFillers: [{ house: 'x' }] }, /string id/],
+  ])('returns 400 when %s', async (_label, extra, match) => {
+    const kv = makeKV();
+    const res = await put({ baseVersion: seed.version, data: { ...validData(), ...extra } }, { ...baseEnv(), CELLAR_KV: kv });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(match);
+    expect(kv.puts).toHaveLength(0);
+  });
+
+  it.each([[1.5], [-1], ['2']])('returns 400 when a cellar qty is %j', async (qty) => {
+    const data = validData();
+    data.reds[0].qty = qty;
+    const res = await put({ baseVersion: seed.version, data }, { ...baseEnv(), CELLAR_KV: makeKV() });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/qty/);
+  });
+
   it('returns 413 for an oversized payload, measured in bytes', async () => {
     const res = await put('x'.repeat(512 * 1024 + 1), { ...baseEnv(), CELLAR_KV: makeKV() });
     expect(res.status).toBe(413);
