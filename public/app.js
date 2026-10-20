@@ -596,10 +596,13 @@
     $('#editor-fields [data-for="red"]').hidden = wine.value !== 'red';
   }
 
-  function openEditor({ tableId, row, isNew, title, extras = '', onSave }) {
+  function openEditor({ tableId, row, isNew, title, extras = '', onSave, onSubmit, onBack, step, saveLabel }) {
     const def = TABLES[tableId];
-    editorCtx = { tableId, row, isNew, onSave };
+    editorCtx = { tableId, row, isNew, onSave, onSubmit };
     $('#editor-title').textContent = title || (isNew ? `Add to ${def.title}` : `Edit ${def.title} bottle`);
+    $('#editor-step').hidden = !step; $('#editor-step').textContent = step || '';
+    $('#editor-back').hidden = !onBack; $('#editor-back').onclick = onBack || null;
+    $('#editor-save').textContent = saveLabel || 'Save';
     if (isNew && !row.shelf && (tableId === 'champagne' || tableId === 'reds')) row.shelf = defaultShelf(tableId, row);
     $('#editor-fields').innerHTML = FORMS[def.form](row).join('') + extras;
     syncWineToggle();
@@ -651,6 +654,7 @@
       for (const k of ['matt', 'rachael']) if (scoreOf(updated[k]) !== null) updated[k] = Math.min(5, Math.max(0, Math.round(updated[k] * 10) / 10));
       if (scoreOf(updated.matt) === null && scoreOf(updated.rachael) === null) { alert('Give at least one score.'); return; }
     }
+    if (editorCtx.onSubmit) { editorCtx.onSubmit(updated); return; }
     const list = state.doc[def.list];
     if (editorCtx.isNew) list.push(updated);
     else list[list.findIndex((r) => r.id === updated.id)] = updated;
@@ -791,71 +795,132 @@
     commit();
   });
 
-  // ---------------------------------------------------------------- bought dialog
+  // ---------------------------------------------------------------- add bottles (cart)
+  // Step 1 builds a list of bottles; step 2 walks the list with the cellar form; one save at the end.
   const boughtDlg = $('#bought');
   const FILLER_SOURCES = ['nextUp', 'premier', 'everyday', 'redFillers'];
+  let cart = [];
 
-  // Opens the cellar editor pre-filled from a filler row, with the quantity set.
-  function buyFromFiller(sourceId, row, qty) {
-    const isRed = sourceId === 'redFillers' || row.wine === 'red';
-    const target = isRed ? 'reds' : 'champagne';
-    const base = TABLES[target].emptyRow();
-    const prefill = isRed
-      ? { ...base, vineyard: row.house, bottle: row.cuvee, style: row.style, category: row.category || 'aging', qty }
-      : { ...base, house: row.house, cuvee: row.cuvee, style: row.style, category: row.category || 'everyday', vintage: (String(row.cuvee || '').match(/\b(19|20)\d{2}\b/) || ['NV'])[0], qty };
-    openEditor({
-      tableId: target, row: prefill, isNew: true,
-      title: `Add ${row.house} to ${TABLES[target].title}`,
-      extras: sourceId === 'nextUp' ? '<label class="check full"><input type="checkbox" name="_removeFromNextUp" checked> Remove from Next up</label>' : '',
-      onSave: (remove) => { if (remove) state.doc.nextUp = state.doc.nextUp.filter((r) => r.id !== row.id); },
-    });
+  // The cellar row a filler or new bottle starts from.
+  function prefillFrom(targetId, source) {
+    const base = TABLES[targetId].emptyRow();
+    if (targetId === 'reds') return { ...base, vineyard: source.house, bottle: source.cuvee, style: source.style || '', category: source.category || 'aging' };
+    return { ...base, house: source.house, cuvee: source.cuvee, style: source.style || '', category: source.category || 'everyday', vintage: (String(source.cuvee || '').match(/\b(19|20)\d{2}\b/) || ['NV'])[0] };
+  }
+  const cartName = (item) => item.kind === 'existing'
+    ? `${item.row.house || item.row.vineyard} ${item.row.cuvee || item.row.bottle}`
+    : `${item.prefill.house || item.prefill.vineyard} ${item.prefill.cuvee || item.prefill.bottle}`;
+
+  function cartItemFromFiller(sourceId, row, qty) {
+    const targetId = sourceId === 'redFillers' || row.wine === 'red' ? 'reds' : 'champagne';
+    return { id: uid('cart'), kind: 'filler', sourceId, row, targetId, qty, prefill: prefillFrom(targetId, row), removeFromNextUp: sourceId === 'nextUp' };
+  }
+  function addToCart(item) {
+    const same = cart.find((c) => c.kind === item.kind && c.row === item.row && c.targetId === item.targetId);
+    if (same) same.qty += item.qty; else cart.push(item);
+    renderCart();
+  }
+  function renderCart() {
+    const list = $('#cart-list');
+    list.innerHTML = cart.map((c) => `<li class="cart-item" data-cart="${c.id}">
+        <span class="cart-name">${esc(cartName(c))}</span>
+        <span class="cart-source">${c.kind === 'existing' ? 'already in cellar' : c.kind === 'new' ? `new ${c.targetId === 'reds' ? 'red' : 'Champagne'}` : esc(TABLES[c.sourceId].title)}</span>
+        <label class="cart-qty">×<input type="number" min="1" step="1" value="${c.qty}" data-cart-qty="${c.id}" aria-label="Quantity"></label>
+        ${c.sourceId === 'nextUp' ? `<label class="check cart-remove"><input type="checkbox" data-cart-remove="${c.id}"${c.removeFromNextUp ? ' checked' : ''}> Remove from Next up</label>` : ''}
+        <button type="button" class="btn small" data-cart-drop="${c.id}">Remove</button>
+      </li>`).join('') || '<li class="cart-empty">Nothing yet. Pick a bottle above and press Add to list.</li>';
+    const bottles = cart.reduce((n, c) => n + c.qty, 0);
+    $('#cart-count').textContent = cart.length ? `${cart.length} ${cart.length === 1 ? 'line' : 'lines'}, ${bottles} ${bottles === 1 ? 'bottle' : 'bottles'}` : '';
+    const needDetails = cart.filter((c) => c.kind !== 'existing').length;
+    $('#bought-next').disabled = !cart.length;
+    $('#bought-next').textContent = needDetails ? `Next: details (${needDetails})` : 'Add to cellar';
   }
 
   function openBought() {
-    const fillers = FILLER_SOURCES.map((id) => {
+    const option = (id, r, label) => `<option value="${id}:${esc(r.id)}">${esc(label)}</option>`;
+    $('#bought-filler').innerHTML = FILLER_SOURCES.map((id) => {
       const rows = sortedRows(TABLES[id]);
-      if (!rows.length) return '';
-      return `<optgroup label="${esc(TABLES[id].title)}">${rows.map((r) => `<option value="${id}:${esc(r.id)}">${esc(`${r.house} ${r.cuvee}`)}</option>`).join('')}</optgroup>`;
-    }).join('');
-    const cellar = ['champagne', 'reds'].map((id) => {
+      return rows.length ? `<optgroup label="${esc(TABLES[id].title)}">${rows.map((r) => option(id, r, `${r.house} ${r.cuvee}`)).join('')}</optgroup>` : '';
+    }).join('') || '<option value="">Nothing in the fillers lists</option>';
+    $('#bought-existing').innerHTML = ['champagne', 'reds'].map((id) => {
       const rows = sortedRows(TABLES[id]);
-      if (!rows.length) return '';
-      return `<optgroup label="${esc(TABLES[id].title)}">${rows.map((r) => `<option value="${id}:${esc(r.id)}">${esc(`${r.house || r.vineyard} ${r.cuvee || r.bottle}`)} (${qtyOf(r)} in cellar)</option>`).join('')}</optgroup>`;
-    }).join('');
-    $('#bought-filler').innerHTML = fillers || '<option value="">Nothing in the fillers lists</option>';
-    $('#bought-existing').innerHTML = cellar || '<option value="">Nothing in the cellar</option>';
+      return rows.length ? `<optgroup label="${esc(TABLES[id].title)}">${rows.map((r) => option(id, r, `${r.house || r.vineyard} ${r.cuvee || r.bottle} (${qtyOf(r)} in cellar)`)).join('')}</optgroup>` : '';
+    }).join('') || '<option value="">Nothing in the cellar</option>';
     $('#bought-qty').value = 1;
-    boughtDlg.querySelector('[name="mode"][value="filler"]').checked = true;
+    $('#bought-new-house').value = ''; $('#bought-new-cuvee').value = '';
     syncBoughtMode();
-    boughtDlg.showModal();
+    renderCart();
+    if (!boughtDlg.open) boughtDlg.showModal();
   }
   function syncBoughtMode() {
     const mode = boughtDlg.querySelector('[name="mode"]:checked').value;
     boughtDlg.querySelectorAll('[data-mode]').forEach((el) => { el.hidden = el.dataset.mode !== mode; });
+    const red = boughtDlg.querySelector('[name="newWine"]:checked').value === 'reds';
+    boughtDlg.querySelector('[data-new-field="house"]').firstChild.textContent = red ? 'Vineyard *' : 'House *';
+    boughtDlg.querySelector('[data-new-field="cuvee"]').firstChild.textContent = red ? 'Bottle *' : 'Cuvée *';
   }
-  boughtDlg.addEventListener('change', (e) => { if (e.target.name === 'mode') syncBoughtMode(); });
-  $('#bought-cancel').addEventListener('click', () => boughtDlg.close());
-  $('#bought-form').addEventListener('submit', (e) => {
-    e.preventDefault();
+  boughtDlg.addEventListener('change', (e) => { if (e.target.name === 'mode' || e.target.name === 'newWine') syncBoughtMode(); });
+
+  $('#bought-add').addEventListener('click', () => {
     const mode = boughtDlg.querySelector('[name="mode"]:checked').value;
     const qty = Math.max(1, Math.round(Number($('#bought-qty').value) || 1));
     const pick = (sel) => { const [tableId, id] = String(sel.value).split(':'); const def = TABLES[tableId]; return def ? { tableId, row: state.doc[def.list].find((r) => r.id === id) } : {}; };
     if (mode === 'filler') {
       const { tableId, row } = pick($('#bought-filler'));
-      if (!row) return;
-      boughtDlg.close();
-      buyFromFiller(tableId, row, qty);
+      if (row) addToCart(cartItemFromFiller(tableId, row, qty));
     } else if (mode === 'existing') {
-      const { row } = pick($('#bought-existing'));
-      if (!row) return;
-      row.qty = qtyOf(row) + qty;
-      boughtDlg.close();
-      commit();
+      const { tableId, row } = pick($('#bought-existing'));
+      if (row) addToCart({ id: uid('cart'), kind: 'existing', sourceId: tableId, row, targetId: tableId, qty });
     } else {
-      const tableId = boughtDlg.querySelector('[name="newWine"]:checked').value;
-      boughtDlg.close();
-      openEditor({ tableId, row: { ...TABLES[tableId].emptyRow(), qty }, isNew: true });
+      const targetId = boughtDlg.querySelector('[name="newWine"]:checked').value;
+      const house = $('#bought-new-house').value.trim(), cuvee = $('#bought-new-cuvee').value.trim();
+      if (!house || !cuvee) { alert('Give the bottle a name first (both fields).'); return; }
+      addToCart({ id: uid('cart'), kind: 'new', sourceId: null, row: null, targetId, qty, prefill: prefillFrom(targetId, { house, cuvee }) });
+      $('#bought-new-house').value = ''; $('#bought-new-cuvee').value = '';
     }
+    $('#bought-qty').value = 1;
+  });
+  $('#cart').addEventListener('click', (e) => {
+    const drop = e.target.closest('[data-cart-drop]');
+    if (drop) { cart = cart.filter((c) => c.id !== drop.dataset.cartDrop); renderCart(); }
+  });
+  $('#cart').addEventListener('change', (e) => {
+    const q = e.target.closest('[data-cart-qty]'), r = e.target.closest('[data-cart-remove]');
+    if (q) { const c = cart.find((x) => x.id === q.dataset.cartQty); if (c) c.qty = Math.max(1, Math.round(Number(q.value) || 1)); renderCart(); }
+    if (r) { const c = cart.find((x) => x.id === r.dataset.cartRemove); if (c) c.removeFromNextUp = r.checked; }
+  });
+  $('#bought-cancel').addEventListener('click', () => { cart = []; boughtDlg.close(); });
+
+  // Step 2: details for each non-existing item, one form at a time, then one save.
+  function detailsStep(i) {
+    const pending = cart.filter((c) => c.kind !== 'existing');
+    if (i >= pending.length) { finishCart(); return; }
+    const item = pending[i];
+    const row = { ...item.prefill, qty: item.qty };
+    if (!row.shelf) row.shelf = defaultShelf(item.targetId, row);
+    openEditor({
+      tableId: item.targetId, row, isNew: true,
+      title: `${cartName(item)} — add to ${TABLES[item.targetId].title}`,
+      step: `Details ${i + 1} of ${pending.length}`,
+      saveLabel: i + 1 < pending.length ? 'Next' : 'Save all',
+      onBack: i > 0 ? () => { dialog.close(); detailsStep(i - 1); } : () => { dialog.close(); openBought(); },
+      onSubmit: (updated) => { item.prefill = updated; item.qty = qtyOf(updated); dialog.close(); detailsStep(i + 1); },
+    });
+  }
+  function finishCart() {
+    for (const c of cart) {
+      if (c.kind === 'existing') { c.row.qty = qtyOf(c.row) + c.qty; continue; }
+      state.doc[TABLES[c.targetId].list].push({ ...c.prefill, qty: c.qty });
+      if (c.sourceId === 'nextUp' && c.removeFromNextUp) state.doc.nextUp = state.doc.nextUp.filter((r) => r.id !== c.row.id);
+    }
+    cart = [];
+    commit();
+  }
+  $('#bought-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!cart.length) return;
+    boughtDlg.close();
+    detailsStep(0);
   });
   $('#bought-toggle').addEventListener('click', openBought);
 
@@ -909,7 +974,7 @@
         break;
       }
       case 'bought':
-        if (row) buyFromFiller(tableId, row, 1);
+        if (row) { addToCart(cartItemFromFiller(tableId, row, 1)); openBought(); }
         break;
       case 'note': {
         const key = act.dataset.note;
