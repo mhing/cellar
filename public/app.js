@@ -38,6 +38,22 @@
   const uid = (p) => `${p}-${(crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)).slice(0, 8)}`;
   const norm = (s) => String(s || '').normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/["“”]/g, '').trim().toLowerCase();
   const safeUrl = (u) => (/^https?:\/\//i.test(u || '') ? u : '');
+  const today = () => new Date().toISOString().slice(0, 10);
+  // Cellar rows use house/cuvee (champagne) or vineyard/bottle (reds); filler and rating rows always use house/cuvee.
+  const wineKey = (r) => `${norm(r.house || r.vineyard)}|${norm(r.cuvee || r.bottle)}`;
+  const qtyOf = (r) => (Number.isInteger(r.qty) && r.qty > 0 ? r.qty : 1);
+  const scoreOf = (v) => (typeof v === 'number' && !Number.isNaN(v) ? v : null);
+  const avgOf = (e) => {
+    const given = [scoreOf(e.matt), scoreOf(e.rachael)].filter((v) => v !== null);
+    return given.length ? given.reduce((a, b) => a + b, 0) / given.length : null;
+  };
+  const fmtScore = (v) => (scoreOf(v) === null ? '—' : v.toFixed(1));
+  const fmtDate = (d) => { if (!d) return ''; const t = new Date(d); return Number.isNaN(t.getTime()) ? String(d) : t.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); };
+  const byNewest = (a, b) => String(b.drankAt || '').localeCompare(String(a.drankAt || ''));
+  function latestRating(row) {
+    const k = wineKey(row);
+    return state.doc.ratings.filter((e) => wineKey(e) === k).sort(byNewest)[0] || null;
+  }
 
   function priceBand(text) {
     const n = (String(text || '').match(/\d+(?:\.\d+)?/g) || []).map(Number);
@@ -60,6 +76,15 @@
   const redStyleChip = (r) => (r.style ? `<span class="chip style">${esc(r.style)}</span>` : '');
   const mono = (v) => (v ? `<span class="mono">${esc(v)}</span>` : '<span class="blank">—</span>');
   const withEst = (v, est) => (v ? `<span class="mono">${esc(v)}</span>${est ? '<span class="est">est.</span>' : ''}` : '');
+  const ratingChip = (row) => {
+    const e = latestRating(row);
+    const avg = e ? avgOf(e) : null;
+    if (avg === null) return '';
+    return `<span class="chip rating" title="Matt ${fmtScore(e.matt)} · Rachael ${fmtScore(e.rachael)}">★ ${fmtScore(avg)}</span>`;
+  };
+  const scoreCell = (v) => (scoreOf(v) === null ? '<span class="blank">—</span>' : `<span class="mono">${fmtScore(v)}</span>`);
+  const qtyCell = (r, id) =>
+    `<span class="qty"><button type="button" class="btn small edit-only" data-act="qty" data-delta="-1" data-table="${id}" data-id="${esc(r.id)}" aria-label="One fewer">−</button><span class="mono">${qtyOf(r)}</span><button type="button" class="btn small edit-only" data-act="qty" data-delta="1" data-table="${id}" data-id="${esc(r.id)}" aria-label="One more">+</button></span>`;
   const grapeKey = () =>
     '<div class="grape-key"><span>Style bar:</span><span><i style="background:var(--g-ch)"></i>Chardonnay</span><span><i style="background:var(--g-pn)"></i>Pinot Noir</span><span><i style="background:var(--g-pm)"></i>Meunier</span></div>';
 
@@ -77,6 +102,8 @@
         { label: 'Category', html: (r) => catPill(r.category) },
         { label: 'Maturity', html: (r) => matPill(r.maturity) },
         { label: 'Drink by', html: (r) => withEst(r.drinkBy, r.drinkByEst) },
+        { label: 'Qty', html: qtyCell },
+        { label: 'Rating', html: ratingChip },
       ],
       filters: [
         { key: 'house', label: 'House', value: (r) => r.house },
@@ -84,8 +111,8 @@
         { key: 'category', label: 'Category', value: (r) => CATEGORIES[r.category] || '', local: true },
         { key: 'maturity', label: 'Maturity', value: (r) => MATURITY[r.maturity] || '', order: MATURITY_ORDER, local: true },
       ],
-      form: 'champagne',
-      emptyRow: () => ({ id: uid('c'), house: '', cuvee: '', style: '', vintage: 'NV', disgorged: '', lees: '', leesEst: false, category: 'everyday', maturity: '', drinkBy: '', drinkByEst: false, shelf: '' }),
+      form: 'champagne', qty: true, drank: true,
+      emptyRow: () => ({ id: uid('c'), house: '', cuvee: '', style: '', vintage: 'NV', disgorged: '', lees: '', leesEst: false, category: 'everyday', maturity: '', drinkBy: '', drinkByEst: false, shelf: '', qty: 1 }),
     },
     reds: {
       list: 'reds', title: 'Red wine', group: 'red',
@@ -96,14 +123,36 @@
         { label: 'Category', html: (r) => catPill(r.category) },
         { label: 'Maturity', html: (r) => matPill(r.maturity) },
         { label: 'Drink by', html: (r) => mono(r.drinkBy) },
+        { label: 'Qty', html: qtyCell },
+        { label: 'Rating', html: ratingChip },
       ],
       filters: [
         { key: 'style', label: 'Style', value: (r) => r.style },
         { key: 'category', label: 'Category', value: (r) => CATEGORIES[r.category] || '', local: true },
         { key: 'maturity', label: 'Maturity', value: (r) => MATURITY[r.maturity] || '', order: MATURITY_ORDER, local: true },
       ],
-      form: 'red',
-      emptyRow: () => ({ id: uid('r'), vineyard: '', bottle: '', style: '', category: 'aging', maturity: '', drinkBy: '', shelf: '' }),
+      form: 'red', qty: true, drank: true,
+      emptyRow: () => ({ id: uid('r'), vineyard: '', bottle: '', style: '', category: 'aging', maturity: '', drinkBy: '', shelf: '', qty: 1 }),
+    },
+    redFillers: {
+      list: 'redFillers', title: 'Red fillers', group: 'redfillers', sorted: true,
+      columns: [
+        { label: 'Vineyard', html: (r) => `<span class="house">${esc(r.house)}</span>` },
+        { label: 'Bottle', html: (r) => esc(r.cuvee) },
+        { label: 'Price', html: (r) => mono(r.price) },
+        { label: 'Style', html: redStyleChip },
+        { label: 'Category', html: (r) => catPill(r.category) },
+        { label: 'Est. window', html: (r) => mono(r.window) },
+        { label: 'Rating', html: ratingChip },
+        { label: 'Notes', cls: 'notes', html: (r) => esc(r.notes) },
+      ],
+      filters: [
+        { key: 'style', label: 'Style', value: (r) => r.style },
+        { key: 'category', label: 'Category', value: (r) => CATEGORIES[r.category] || '' },
+        { key: 'price', label: 'Price', value: (r) => priceBand(r.price), order: PRICE_BANDS },
+      ],
+      form: 'redFiller',
+      emptyRow: () => ({ id: uid('rf'), house: '', cuvee: '', price: '', wine: 'red', style: '', category: 'aging', window: '', notes: '' }),
     },
     nextUp: {
       list: 'nextUp', title: 'Next up — Majestic Mix Six', group: 'fillers', grapeKey: true, note: 'nextUpNote',
@@ -114,6 +163,7 @@
         { label: 'Style', html: styleChip },
         { label: 'Category', html: (r) => catPill(r.category) },
         { label: 'Est. window', html: (r) => mono(r.window) },
+        { label: 'Rating', html: ratingChip },
         { label: 'Notes', cls: 'notes', html: (r) => esc(r.notes) },
       ],
       filters: [],
@@ -129,6 +179,7 @@
         { label: 'Style', html: styleChip },
         { label: 'Category', html: (r) => catPill(r.category) },
         { label: 'Est. window', html: (r) => mono(r.window) },
+        { label: 'Rating', html: ratingChip },
         { label: 'Notes', cls: 'notes', html: (r) => esc(r.notes) },
       ],
       filters: [
@@ -148,6 +199,7 @@
         { label: 'Price', html: (r) => mono(r.price) },
         { label: 'Style', html: styleChip },
         { label: 'Where to buy', html: (r) => { const u = safeUrl(r.link); return u ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(r.where || 'Link')}</a>` : esc(r.where); } },
+        { label: 'Rating', html: ratingChip },
         { label: 'Notes', cls: 'notes', html: (r) => esc(r.notes) },
       ],
       filters: [
@@ -158,12 +210,35 @@
       form: 'everyday',
       emptyRow: () => ({ id: uid('e'), house: '', cuvee: '', price: '', style: '', where: '', link: '', notes: '' }),
     },
+    recycle: {
+      list: 'ratings', title: 'Recycle bin', group: 'recycle', newest: true, noAdd: true,
+      columns: [
+        { label: 'Drunk', html: (r) => mono(fmtDate(r.drankAt)) },
+        { label: 'House / Vineyard', html: (r) => `<span class="house">${esc(r.house)}</span>` },
+        { label: 'Cuvée / Bottle', html: (r) => esc(r.cuvee) },
+        { label: 'Vintage', html: (r) => mono(r.vintage) },
+        { label: 'Wine', html: (r) => esc(r.wine === 'red' ? 'Red' : 'Champagne') },
+        { label: 'Style', html: styleChip },
+        { label: 'Matt', html: (r) => scoreCell(r.matt) },
+        { label: 'Rachael', html: (r) => scoreCell(r.rachael) },
+        { label: 'Average', html: (r) => `<span class="chip rating">★ ${fmtScore(avgOf(r))}</span>` },
+        { label: 'Notes', cls: 'notes', html: (r) => esc(r.notes) },
+      ],
+      filters: [
+        { key: 'house', label: 'House', value: (r) => r.house },
+        { key: 'wine', label: 'Wine', value: (r) => (r.wine === 'red' ? 'Red' : 'Champagne') },
+        { key: 'style', label: 'Style', value: (r) => (r.wine === 'red' ? r.style : (STYLES[r.style] || {}).label || '') },
+      ],
+      form: 'rating',
+      emptyRow: () => ({ id: uid('d'), house: '', cuvee: '', vintage: '', wine: 'champagne', style: '', drankAt: today(), matt: null, rachael: null, notes: '' }),
+    },
   };
 
   // ---------------------------------------------------------------- filtering
   function sortedRows(def) {
     const rows = [...(state.doc[def.list] || [])];
     if (def.sorted) rows.sort((a, b) => norm(a.house).localeCompare(norm(b.house)) || norm(a.cuvee).localeCompare(norm(b.cuvee)));
+    if (def.newest) rows.sort(byNewest);
     return rows;
   }
 
@@ -212,9 +287,10 @@
     const shown = rows.filter((r) => rowMatches(r, active));
     const head = def.columns.map((c) => `<th>${c.label}</th>`).join('') + '<th class="col-actions">Actions</th>';
     const body = shown.map((r) => {
-      const cells = def.columns.map((c) => `<td${c.cls ? ` class="${c.cls}"` : ''}>${c.html(r)}</td>`).join('');
+      const cells = def.columns.map((c) => `<td${c.cls ? ` class="${c.cls}"` : ''}>${c.html(r, id)}</td>`).join('');
       const actions = `<td class="col-actions">
           ${def.bought ? `<button type="button" class="btn small" data-act="bought" data-table="${id}" data-id="${esc(r.id)}">Bought</button>` : ''}
+          ${def.drank ? `<button type="button" class="btn small" data-act="drank" data-table="${id}" data-id="${esc(r.id)}">Drank</button>` : ''}
           <button type="button" class="btn small" data-act="edit" data-table="${id}" data-id="${esc(r.id)}">Edit</button>
           <button type="button" class="btn small danger" data-act="remove" data-table="${id}" data-id="${esc(r.id)}">Remove</button>
         </td>`;
@@ -224,16 +300,17 @@
     const count = def.filters.length || (state.view === 'all' && (id === 'champagne' || id === 'reds'))
       ? (shown.length ? `${shown.length} of ${rows.length} shown` : 'No matches') : '';
 
-    const heading = def.group === 'fillers'
+    const bottles = rows.reduce((n, r) => n + (def.qty ? qtyOf(r) : 1), 0);
+    const heading = def.group === 'fillers' || def.group === 'recycle'
       ? `<div class="section-head"><h2>${esc(def.title)}</h2></div>`
-      : `<div class="group-label">${esc(def.title)} <span class="count">${rows.length} bottles</span></div>`;
+      : `<div class="group-label">${esc(def.title)} <span class="count">${bottles} bottles</span></div>`;
     const note = def.note ? `<p class="section-note">${esc(state.doc[def.note] || '')}${state.editing ? ` <button type="button" class="btn small" data-act="note" data-note="${def.note}">Edit note</button>` : ''}</p>` : '';
     return `<div class="table-block" data-group="${def.group}" id="tbl-${id}">
       ${heading}
       ${renderFilterBar(id, def, rows)}
       ${def.grapeKey ? grapeKey() : ''}
       <div class="table-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>
-      <button type="button" class="btn add-row" data-act="add" data-table="${id}">+ Add bottle</button>
+      ${def.noAdd ? '' : `<button type="button" class="btn add-row" data-act="add" data-table="${id}">+ Add bottle</button>`}
       ${note}
     </div>`.replace('<span class="filter-count" data-count="' + id + '"></span>', `<span class="filter-count">${count}</span>`);
   }
@@ -264,7 +341,8 @@
       const hits = state.shelfCat ? list.filter((b) => b.category === state.shelfCat).length : 0;
       const chips = list.map((b) => {
         const cls = state.shelfCat ? (b.category === state.shelfCat ? ' is-hit' : ' is-dim') : '';
-        return `<span class="bottle-chip${cls}"><span class="dot cat-${esc(b.category)}"></span>${esc(b.label)}</span>`;
+        const times = qtyOf(b) > 1 ? ` <span class="qty-x">×${qtyOf(b)}</span>` : '';
+        return `<span class="bottle-chip${cls}"><span class="dot cat-${esc(b.category)}"></span>${esc(b.label)}${times}</span>`;
       }).join('') || '<span class="empty-shelf">Empty</span>';
       const match = state.shelfCat ? (hits ? `${hits} match` : 'none') : '';
       return `<div class="shelf-block${state.shelfCat && !hits ? ' is-empty' : ''}">
@@ -278,6 +356,28 @@
       ${blocks}</section>`;
   }
 
+  function renderRatings() {
+    // One row per wine, using its latest drank entry; combined score first.
+    const latest = new Map();
+    for (const e of [...state.doc.ratings].sort(byNewest)) {
+      const k = wineKey(e);
+      if (!latest.has(k)) latest.set(k, { entry: e, times: 0 });
+      latest.get(k).times += 1;
+    }
+    const rows = [...latest.values()].sort((a, b) => (avgOf(b.entry) ?? -1) - (avgOf(a.entry) ?? -1) || byNewest(a.entry, b.entry));
+    const body = rows.map(({ entry: e, times }) => `<tr>
+        <td><span class="house">${esc(e.house)}</span></td><td>${esc(e.cuvee)}</td><td>${mono(e.vintage)}</td>
+        <td>${esc(e.wine === 'red' ? 'Red' : 'Champagne')}</td>
+        <td>${scoreCell(e.matt)}</td><td>${scoreCell(e.rachael)}</td>
+        <td><span class="chip rating">★ ${fmtScore(avgOf(e))}</span></td>
+        <td>${mono(fmtDate(e.drankAt))}${times > 1 ? `<span class="est">×${times}</span>` : ''}</td>
+      </tr>`).join('') || '<tr><td colspan="8" class="blank">Nothing rated yet. Use Drank on a cellar bottle.</td></tr>';
+    return `<section data-group="ratings">
+      <div class="section-head"><h2>Ratings</h2><span class="filter-count">${rows.length} wines</span></div>
+      <div class="table-wrap"><table><thead><tr><th>House / Vineyard</th><th>Cuvée / Bottle</th><th>Vintage</th><th>Wine</th><th>Matt</th><th>Rachael</th><th>Combined</th><th>Last drunk</th></tr></thead><tbody>${body}</tbody></table></div>
+    </section>`;
+  }
+
   function render() {
     if (!state.doc) return;
     const app = $('#app');
@@ -285,8 +385,11 @@
     app.innerHTML = `
       ${renderShared()}
       <section data-group="cellar">${renderTable('champagne')}${renderTable('reds')}</section>
+      <section data-group="redfillers">${renderTable('redFillers')}</section>
       ${renderShelves()}
-      <section data-group="fillers">${renderTable('nextUp')}${renderTable('premier')}${renderTable('everyday')}</section>`;
+      <section data-group="fillers">${renderTable('nextUp')}${renderTable('premier')}${renderTable('everyday')}</section>
+      <section data-group="recycle">${renderTable('recycle')}</section>
+      ${renderRatings()}`;
     applyView();
     window.scrollTo(0, scrollY);
   }
@@ -302,6 +405,7 @@
       else if (g === 'cellar') show = v === 'all' || v === 'champagne' || v === 'red';
       else if (g === 'champagne') show = v === 'all' || v === 'champagne';
       else if (g === 'red') show = v === 'all' || v === 'red';
+      else if (g === 'redfillers') show = v === 'red';
       else show = g === v;
       el.hidden = !show;
     });
@@ -329,6 +433,7 @@
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       state.doc = await res.json();
+      for (const list of ['ratings', 'redFillers']) if (!Array.isArray(state.doc[list])) state.doc[list] = [];
       setStatus(state.doc.updatedAt && state.doc.updatedBy !== 'seed' ? `Last saved ${new Date(state.doc.updatedAt).toLocaleString()}` : '');
       render();
     } catch (err) {
@@ -370,6 +475,7 @@
       } else {
         // Adopt the server's copy: it may have trimmed or normalised what we sent.
         state.doc = saved;
+        for (const list of ['ratings', 'redFillers']) if (!Array.isArray(state.doc[list])) state.doc[list] = [];
         render();
       }
       setStatus(`Saved ${new Date(saved.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
@@ -394,6 +500,7 @@
   const shelfMap = () => Object.fromEntries(state.doc.shelves.map((s) => [s.id, `${s.name} — ${s.tag}`]));
   const text = (name, label, v, extra = '') => `<label class="${extra}">${label}<input type="text" name="${name}" value="${esc(v)}"></label>`;
   const check = (name, label, v) => `<label class="check"><input type="checkbox" name="${name}"${v ? ' checked' : ''}> ${label}</label>`;
+  const num = (name, label, v, attrs = '') => `<label>${label}<input type="number" name="${name}" value="${scoreOf(v) === null ? '' : esc(v)}" ${attrs}></label>`;
   const select = (name, label, html, extra = '') => `<label class="${extra}">${label}<select name="${name}">${html}</select></label>`;
 
   const FORMS = {
@@ -404,12 +511,25 @@
       text('lees', 'Yrs on lees', r.lees), check('leesEst', 'Lees figure is an estimate', r.leesEst),
       select('maturity', 'Maturity', opts(MATURITY, r.maturity, '—')), text('drinkBy', 'Drink by', r.drinkBy),
       check('drinkByEst', 'Drink-by is an estimate', r.drinkByEst), select('shelf', 'Shelf', opts(shelfMap(), r.shelf, 'No shelf')),
+      num('qty', 'Quantity', qtyOf(r), 'min="1" step="1"'),
     ],
     red: (r) => [
       text('vineyard', 'Vineyard *', r.vineyard), text('bottle', 'Bottle *', r.bottle),
       text('style', 'Style (e.g. Shiraz)', r.style), select('category', 'Category', opts(CATEGORIES, r.category)),
       select('maturity', 'Maturity', opts(MATURITY, r.maturity, '—')), text('drinkBy', 'Drink by (~ if estimated)', r.drinkBy),
-      select('shelf', 'Shelf', opts(shelfMap(), r.shelf, 'No shelf'), 'full'),
+      select('shelf', 'Shelf', opts(shelfMap(), r.shelf, 'No shelf')), num('qty', 'Quantity', qtyOf(r), 'min="1" step="1"'),
+    ],
+    redFiller: (r) => [
+      text('house', 'Vineyard *', r.house), text('cuvee', 'Bottle *', r.cuvee),
+      text('price', 'Price', r.price), text('style', 'Style (e.g. Shiraz)', r.style),
+      select('category', 'Category', opts(CATEGORIES, r.category)), text('window', 'Est. window', r.window),
+      `<label class="full">Notes<textarea name="notes">${esc(r.notes)}</textarea></label>`,
+    ],
+    rating: (r) => [
+      text('house', 'House / Vineyard *', r.house), text('cuvee', 'Cuvée / Bottle *', r.cuvee),
+      text('vintage', 'Vintage', r.vintage), `<label>Drunk on<input type="date" name="drankAt" value="${esc(r.drankAt)}"></label>`,
+      num('matt', 'Matt (0–5)', r.matt, 'min="0" max="5" step="0.1"'), num('rachael', 'Rachael (0–5)', r.rachael, 'min="0" max="5" step="0.1"'),
+      `<label class="full">Notes<textarea name="notes">${esc(r.notes)}</textarea></label>`,
     ],
     filler: (r) => [
       text('house', 'House / Vineyard *', r.house), text('cuvee', 'Cuvée / Bottle *', r.cuvee),
@@ -450,6 +570,7 @@
     for (const el of form.querySelectorAll('input, select, textarea')) {
       if (!el.name || el.name.startsWith('_')) continue;
       if (el.type === 'checkbox') out[el.name] = el.checked;
+      else if (el.type === 'number') out[el.name] = el.value === '' ? null : Number(el.value);
       else out[el.name] = el.value.trim();
     }
     if ('styleChamp' in out) {
@@ -469,6 +590,11 @@
     const required = def.form === 'red' ? ['vineyard', 'bottle'] : ['house', 'cuvee'];
     const missing = required.filter((k) => !updated[k]);
     if (missing.length) { alert('Please fill in the required fields (marked *).'); return; }
+    if ('qty' in updated) updated.qty = Math.max(1, Math.round(updated.qty || 1));
+    if (def.form === 'rating') {
+      for (const k of ['matt', 'rachael']) if (scoreOf(updated[k]) !== null) updated[k] = Math.min(5, Math.max(0, Math.round(updated[k] * 10) / 10));
+      if (scoreOf(updated.matt) === null && scoreOf(updated.rachael) === null) { alert('Give at least one score.'); return; }
+    }
     const list = state.doc[def.list];
     if (editorCtx.isNew) list.push(updated);
     else list[list.findIndex((r) => r.id === updated.id)] = updated;
@@ -477,6 +603,164 @@
     dialog.close();
     commit();
   });
+
+  // ---------------------------------------------------------------- wheel picker
+  // A scroll-snap column of 0.0–5.0 plus a blank. The centred item is the value.
+  const WHEEL_STEPS = Array.from({ length: 51 }, (_, i) => (i / 10).toFixed(1));
+  const ITEM_H = 36;
+  function buildWheel(el) {
+    el.innerHTML = `<div class="wheel-pad"></div>${['—', ...WHEEL_STEPS].map((v, i) => `<div class="wheel-item" data-i="${i}">${v}</div>`).join('')}<div class="wheel-pad"></div>`;
+    el.addEventListener('scroll', () => { cancelAnimationFrame(el._raf); el._raf = requestAnimationFrame(() => markWheel(el)); }, { passive: true });
+    el.addEventListener('click', (e) => { const it = e.target.closest('.wheel-item'); if (it) el.scrollTo({ top: Number(it.dataset.i) * ITEM_H, behavior: 'smooth' }); });
+  }
+  function markWheel(el) {
+    const i = Math.round(el.scrollTop / ITEM_H);
+    el.querySelectorAll('.wheel-item').forEach((it) => it.classList.toggle('is-current', Number(it.dataset.i) === i));
+    el.dispatchEvent(new CustomEvent('wheelchange', { bubbles: true }));
+  }
+  const wheelValue = (el) => { const i = Math.round(el.scrollTop / ITEM_H); return i === 0 ? null : Number(WHEEL_STEPS[i - 1]); };
+  function setWheel(el, v) {
+    const i = scoreOf(v) === null ? 0 : WHEEL_STEPS.indexOf(v.toFixed(1)) + 1;
+    el.scrollTop = Math.max(0, i) * ITEM_H;
+    markWheel(el);
+  }
+
+  // ---------------------------------------------------------------- drank dialog
+  const drankDlg = $('#drank');
+  let drankCtx = null;
+  document.querySelectorAll('#drank .wheel').forEach(buildWheel);
+
+  // Where a drunk bottle goes back to, so it can be bought again.
+  function fillerTarget(tableId, row) {
+    if (tableId === 'reds') return 'redFillers';
+    return row.category === 'everyday' ? 'everyday' : 'premier';
+  }
+  function fillerRowFor(tableId, row) {
+    const target = fillerTarget(tableId, row);
+    const base = TABLES[target].emptyRow();
+    if (target === 'redFillers') return { ...base, house: row.vineyard, cuvee: row.bottle, style: row.style, category: row.category || 'aging', window: row.drinkBy || '' };
+    if (target === 'everyday') return { ...base, house: row.house, cuvee: row.cuvee, style: row.style };
+    return { ...base, house: row.house, cuvee: row.cuvee, style: row.style, category: row.category || 'special', window: row.drinkBy || '' };
+  }
+
+  function openDrank(tableId, row) {
+    drankCtx = { tableId, row };
+    const name = `${row.house || row.vineyard} ${row.cuvee || row.bottle}`;
+    $('#drank-title').textContent = `Drank ${name}`;
+    $('#drank-date').value = today();
+    $('#drank-notes').value = '';
+    const target = fillerTarget(tableId, row);
+    const left = qtyOf(row) - 1;
+    $('#drank-hint').textContent = (left > 0 ? `${left} left in the cellar. ` : 'Last one: it leaves the cellar. ') + `It goes back to ${TABLES[target].title} so it can be bought again.`;
+    drankDlg.showModal();
+    drankDlg.querySelectorAll('.wheel').forEach((w) => setWheel(w, null));
+    updateDrankAvg();
+  }
+  function updateDrankAvg() {
+    const matt = wheelValue($('#wheel-matt')), rachael = wheelValue($('#wheel-rachael'));
+    const avg = avgOf({ matt, rachael });
+    $('#drank-avg').textContent = avg === null ? '—' : avg.toFixed(1);
+    $('#drank-save').disabled = avg === null;
+  }
+  drankDlg.addEventListener('wheelchange', updateDrankAvg);
+  $('#drank-cancel').addEventListener('click', () => drankDlg.close());
+  $('#drank-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!drankCtx) return;
+    const { tableId, row } = drankCtx;
+    const matt = wheelValue($('#wheel-matt')), rachael = wheelValue($('#wheel-rachael'));
+    if (matt === null && rachael === null) return;
+    const list = state.doc[TABLES[tableId].list];
+    const live = list.find((r) => r.id === row.id);
+    if (!live) { drankDlg.close(); return; }
+    const isRed = tableId === 'reds';
+    state.doc.ratings.unshift({
+      id: uid('d'),
+      house: isRed ? live.vineyard : live.house,
+      cuvee: isRed ? live.bottle : live.cuvee,
+      vintage: isRed ? (String(live.bottle || '').match(/\b(19|20)\d{2}\b/) || [''])[0] : live.vintage || '',
+      wine: isRed ? 'red' : 'champagne',
+      style: live.style || '', category: live.category || '', shelf: live.shelf || '',
+      drankAt: $('#drank-date').value || today(),
+      matt, rachael,
+      notes: $('#drank-notes').value.trim(),
+    });
+    if (qtyOf(live) > 1) live.qty = qtyOf(live) - 1;
+    else state.doc[TABLES[tableId].list] = list.filter((r) => r.id !== live.id);
+    const target = fillerTarget(tableId, live);
+    const filler = fillerRowFor(tableId, live);
+    if (!state.doc[target].some((r) => wineKey(r) === wineKey(filler))) state.doc[target].push(filler);
+    drankDlg.close();
+    commit();
+  });
+
+  // ---------------------------------------------------------------- bought dialog
+  const boughtDlg = $('#bought');
+  const FILLER_SOURCES = ['nextUp', 'premier', 'everyday', 'redFillers'];
+
+  // Opens the cellar editor pre-filled from a filler row, with the quantity set.
+  function buyFromFiller(sourceId, row, qty) {
+    const isRed = sourceId === 'redFillers' || row.wine === 'red';
+    const target = isRed ? 'reds' : 'champagne';
+    const base = TABLES[target].emptyRow();
+    const prefill = isRed
+      ? { ...base, vineyard: row.house, bottle: row.cuvee, style: row.style, category: row.category || 'aging', qty }
+      : { ...base, house: row.house, cuvee: row.cuvee, style: row.style, category: row.category || 'everyday', vintage: (String(row.cuvee || '').match(/\b(19|20)\d{2}\b/) || ['NV'])[0], qty };
+    openEditor({
+      tableId: target, row: prefill, isNew: true,
+      title: `Add ${row.house} to ${TABLES[target].title}`,
+      extras: sourceId === 'nextUp' ? '<label class="check full"><input type="checkbox" name="_removeFromNextUp" checked> Remove from Next up</label>' : '',
+      onSave: (remove) => { if (remove) state.doc.nextUp = state.doc.nextUp.filter((r) => r.id !== row.id); },
+    });
+  }
+
+  function openBought() {
+    const fillers = FILLER_SOURCES.map((id) => {
+      const rows = sortedRows(TABLES[id]);
+      if (!rows.length) return '';
+      return `<optgroup label="${esc(TABLES[id].title)}">${rows.map((r) => `<option value="${id}:${esc(r.id)}">${esc(`${r.house} ${r.cuvee}`)}</option>`).join('')}</optgroup>`;
+    }).join('');
+    const cellar = ['champagne', 'reds'].map((id) => {
+      const rows = sortedRows(TABLES[id]);
+      if (!rows.length) return '';
+      return `<optgroup label="${esc(TABLES[id].title)}">${rows.map((r) => `<option value="${id}:${esc(r.id)}">${esc(`${r.house || r.vineyard} ${r.cuvee || r.bottle}`)} (${qtyOf(r)} in cellar)</option>`).join('')}</optgroup>`;
+    }).join('');
+    $('#bought-filler').innerHTML = fillers || '<option value="">Nothing in the fillers lists</option>';
+    $('#bought-existing').innerHTML = cellar || '<option value="">Nothing in the cellar</option>';
+    $('#bought-qty').value = 1;
+    boughtDlg.querySelector('[name="mode"][value="filler"]').checked = true;
+    syncBoughtMode();
+    boughtDlg.showModal();
+  }
+  function syncBoughtMode() {
+    const mode = boughtDlg.querySelector('[name="mode"]:checked').value;
+    boughtDlg.querySelectorAll('[data-mode]').forEach((el) => { el.hidden = el.dataset.mode !== mode; });
+  }
+  boughtDlg.addEventListener('change', (e) => { if (e.target.name === 'mode') syncBoughtMode(); });
+  $('#bought-cancel').addEventListener('click', () => boughtDlg.close());
+  $('#bought-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const mode = boughtDlg.querySelector('[name="mode"]:checked').value;
+    const qty = Math.max(1, Math.round(Number($('#bought-qty').value) || 1));
+    const pick = (sel) => { const [tableId, id] = String(sel.value).split(':'); const def = TABLES[tableId]; return def ? { tableId, row: state.doc[def.list].find((r) => r.id === id) } : {}; };
+    if (mode === 'filler') {
+      const { tableId, row } = pick($('#bought-filler'));
+      if (!row) return;
+      boughtDlg.close();
+      buyFromFiller(tableId, row, qty);
+    } else if (mode === 'existing') {
+      const { row } = pick($('#bought-existing'));
+      if (!row) return;
+      row.qty = qtyOf(row) + qty;
+      boughtDlg.close();
+      commit();
+    } else {
+      const tableId = boughtDlg.querySelector('[name="newWine"]:checked').value;
+      boughtDlg.close();
+      openEditor({ tableId, row: { ...TABLES[tableId].emptyRow(), qty }, isNew: true });
+    }
+  });
+  $('#bought-toggle').addEventListener('click', openBought);
 
   // ---------------------------------------------------------------- events
   document.addEventListener('click', (e) => {
@@ -502,6 +786,15 @@
     const row = list ? list.find((r) => r.id === act.dataset.id) : null;
 
     switch (act.dataset.act) {
+      case 'qty': {
+        if (!row) break;
+        row.qty = Math.max(1, qtyOf(row) + Number(act.dataset.delta));
+        commit();
+        break;
+      }
+      case 'drank':
+        if (row) openDrank(tableId, row);
+        break;
       case 'add':
         openEditor({ tableId, row: def.emptyRow(), isNew: true });
         break;
@@ -518,22 +811,9 @@
         }
         break;
       }
-      case 'bought': {
-        if (!row) break;
-        const isRed = row.wine === 'red';
-        const target = isRed ? 'reds' : 'champagne';
-        const base = TABLES[target].emptyRow();
-        const prefill = isRed
-          ? { ...base, vineyard: row.house, bottle: row.cuvee, style: row.style, category: row.category || 'aging' }
-          : { ...base, house: row.house, cuvee: row.cuvee, style: row.style, category: row.category || 'everyday', vintage: (String(row.cuvee || '').match(/\b(19|20)\d{2}\b/) || ['NV'])[0] };
-        openEditor({
-          tableId: target, row: prefill, isNew: true,
-          title: `Add ${row.house} to ${TABLES[target].title}`,
-          extras: '<label class="check full"><input type="checkbox" name="_removeFromNextUp" checked> Remove from Next up</label>',
-          onSave: (remove) => { if (remove) state.doc.nextUp = state.doc.nextUp.filter((r) => r.id !== row.id); },
-        });
+      case 'bought':
+        if (row) buyFromFiller(tableId, row, 1);
         break;
-      }
       case 'note': {
         const key = act.dataset.note;
         const val = prompt('Edit note', state.doc[key] || '');
@@ -566,7 +846,7 @@
   // ---------------------------------------------------------------- start
   try {
     const saved = localStorage.getItem(VIEW_KEY);
-    if (['all', 'champagne', 'red', 'shelves', 'fillers'].includes(saved)) state.view = saved;
+    if (['all', 'champagne', 'red', 'shelves', 'fillers', 'ratings', 'recycle'].includes(saved)) state.view = saved;
   } catch {}
   applyView();
   load();

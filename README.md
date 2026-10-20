@@ -11,6 +11,10 @@ The tabs across the top switch between five views:
 - **Reds**: just the red wine table: vineyard, bottle, style, category, maturity and drink-by.
 - **Shelf map**: every bottle laid out by shelf, so you can see what's where. Click a category in the legend to highlight those bottles on every shelf. Bottles with no shelf set are listed separately.
 - **Fillers**: the shopping side. *Next up* is the current order, *Premier Fillers* are the good bottles to keep an eye out for, and *Everyday stock fillers* are the reliable ones with links to where to buy them.
+- **Ratings**: every wine you have drunk and scored, one row per wine, with Matt's score, Rachael's score and the combined score. Highest first.
+- **Recycle bin**: the log of what was drunk and when, newest first, with both scores and any notes.
+
+The Reds tab also has a **Red fillers** table under the cellar reds: red bottles to buy again.
 
 Each table has its own filter bar; **Clear** resets it. The view you were last on is remembered on that device.
 
@@ -20,6 +24,8 @@ Each table has its own filter bar; **Clear** resets it. The view you were last o
 - **Category** is why the bottle is here: *Aging* (laid down deliberately), *Special* (for a proper occasion), *Wedding*, or *Everyday*.
 - **Maturity** is a judgement, not a rule: *Youthful*, *Nearly there*, *At peak*.
 - **est.** after a figure means it's an estimate rather than something from the producer.
+- **Qty** is how many of that bottle are in the cellar. The group count and the shelf map add them up.
+- **★ 4.2** next to a bottle is its latest combined score, from the last time you drank one. It shows in every table, so a rating from the cellar follows the wine into Fillers.
 - A dash means the field isn't filled in.
 
 ## Editing
@@ -28,10 +34,30 @@ Each table has its own filter bar; **Clear** resets it. The view you were last o
 
 - **Edit** and **Remove** on each row. Editing opens a form; House and Cuvée (or Vineyard and Bottle for reds) are required, everything else is optional. Remove asks you to confirm.
 - **+ Add bottle** under each table.
-- **Bought** on Next up rows: it opens the form for the cellar table the bottle belongs in, pre-filled from the order, with a tick box to remove it from Next up at the same time. The vintage is picked out of the cuvée name if there is one.
+- **− and +** next to the quantity on cellar rows.
+- **Drank** on cellar rows: see below.
+- **Bought** on Next up rows: a shortcut into the Bought dialog for that bottle.
 - **Edit note** on the Next up total line.
 
 To move a bottle to another shelf, edit it and change its **Shelf**. The shelf map updates itself.
+
+### Drinking a bottle
+
+In edit mode, press **Drank** on a cellar row. Set Matt's and Rachael's scores on the two wheels (0.0 to 5.0 in steps of 0.1; leave one blank if only one of you tried it), add the date and any notes, and save. Then:
+
+- the bottle's quantity drops by one, and the row leaves the cellar and the shelf map when it reaches zero;
+- the wine goes back to a fillers list so it can be bought again: Champagne with the *Everyday* category goes to Everyday stock, other Champagne to Premier Fillers, reds to Red fillers;
+- the entry appears in the Recycle bin and the Ratings tab, and its combined score shows as a chip wherever that wine is listed.
+
+Scores can be corrected later: in edit mode, use **Edit** on the Recycle bin row.
+
+### Buying bottles
+
+**Bought** in the header works in any view and asks what you bought:
+
+- **From the fillers lists**: pick a bottle from Next up, Premier, Everyday or Red fillers and a quantity. The cellar form opens pre-filled; bottles from Next up can be removed from the order at the same time.
+- **More of a bottle already in the cellar**: pick the bottle and a quantity; it is added to the count.
+- **A new bottle**: choose Champagne or Red and a quantity; a blank cellar form opens.
 
 ### Saving
 
