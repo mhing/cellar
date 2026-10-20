@@ -604,31 +604,72 @@
     commit();
   });
 
-  // ---------------------------------------------------------------- wheel picker
-  // A scroll-snap column of 0.0–5.0 plus a blank. The centred item is the value.
-  const WHEEL_STEPS = Array.from({ length: 51 }, (_, i) => (i / 10).toFixed(1));
-  const ITEM_H = 36;
-  function buildWheel(el) {
-    el.innerHTML = `<div class="wheel-pad"></div>${['—', ...WHEEL_STEPS].map((v, i) => `<div class="wheel-item" data-i="${i}">${v}</div>`).join('')}<div class="wheel-pad"></div>`;
-    el.addEventListener('scroll', () => { cancelAnimationFrame(el._raf); el._raf = requestAnimationFrame(() => markWheel(el)); }, { passive: true });
-    el.addEventListener('click', (e) => { const it = e.target.closest('.wheel-item'); if (it) el.scrollTo({ top: Number(it.dataset.i) * ITEM_H, behavior: 'smooth' }); });
+  // ---------------------------------------------------------------- rating dial
+  // A round dial: a 270° arc from 0.0 (bottom-left) to 5.0 (bottom-right), turned by
+  // dragging or tapping, with arrow keys for 0.1 steps. The value is kept on the element.
+  const DIAL = { size: 128, r: 52, sweep: 270 };
+  const dialAngle = (v) => -DIAL.sweep / 2 + (DIAL.sweep * v) / 5; // degrees clockwise from 12 o'clock
+  const dialPoint = (deg) => { const t = (deg * Math.PI) / 180, c = DIAL.size / 2; return [c + DIAL.r * Math.sin(t), c - DIAL.r * Math.cos(t)]; };
+  function arcPath(from, to) {
+    const [x1, y1] = dialPoint(from), [x2, y2] = dialPoint(to);
+    return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${DIAL.r} ${DIAL.r} 0 ${to - from > 180 ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
   }
-  function markWheel(el) {
-    const i = Math.round(el.scrollTop / ITEM_H);
-    el.querySelectorAll('.wheel-item').forEach((it) => it.classList.toggle('is-current', Number(it.dataset.i) === i));
-    el.dispatchEvent(new CustomEvent('wheelchange', { bubbles: true }));
+  function buildDial(el) {
+    const c = DIAL.size / 2;
+    el.innerHTML = `<svg viewBox="0 0 ${DIAL.size} ${DIAL.size}" aria-hidden="true">
+        <path class="dial-track" d="${arcPath(dialAngle(0), dialAngle(5))}"/>
+        <path class="dial-value" d=""/>
+        <circle class="dial-knob" cx="${c}" cy="${c}" r="7"/>
+      </svg><div class="dial-readout">—</div><button type="button" class="dial-clear" tabindex="-1">clear</button>`;
+    el.setAttribute('role', 'slider');
+    el.setAttribute('aria-valuemin', '0'); el.setAttribute('aria-valuemax', '5');
+    el._value = null;
+    const fromPointer = (e) => {
+      const box = el.querySelector('svg').getBoundingClientRect();
+      const dx = e.clientX - (box.left + box.width / 2), dy = e.clientY - (box.top + box.height / 2);
+      let deg = (Math.atan2(dx, -dy) * 180) / Math.PI;           // -180..180, 0 = up
+      deg = Math.max(-DIAL.sweep / 2, Math.min(DIAL.sweep / 2, deg)); // the gap at the bottom snaps to the nearer end
+      setDial(el, Math.round(((deg + DIAL.sweep / 2) / DIAL.sweep) * 50) / 10);
+    };
+    el.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('.dial-clear')) return;
+      e.preventDefault(); el.focus(); el.setPointerCapture(e.pointerId); el.classList.add('is-turning'); fromPointer(e);
+    });
+    el.addEventListener('pointermove', (e) => { if (el.hasPointerCapture(e.pointerId)) fromPointer(e); });
+    const release = (e) => { if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId); el.classList.remove('is-turning'); };
+    el.addEventListener('pointerup', release); el.addEventListener('pointercancel', release);
+    el.addEventListener('keydown', (e) => {
+      const v = el._value ?? 0;
+      const step = { ArrowUp: 0.1, ArrowRight: 0.1, ArrowDown: -0.1, ArrowLeft: -0.1 }[e.key];
+      if (step !== undefined) setDial(el, Math.round((v + step) * 10) / 10);
+      else if (e.key === 'Home') setDial(el, 0);
+      else if (e.key === 'End') setDial(el, 5);
+      else if (e.key === 'Backspace' || e.key === 'Delete') setDial(el, null);
+      else return;
+      e.preventDefault();
+    });
+    el.querySelector('.dial-clear').addEventListener('click', () => { setDial(el, null); el.focus(); });
   }
-  const wheelValue = (el) => { const i = Math.round(el.scrollTop / ITEM_H); return i === 0 ? null : Number(WHEEL_STEPS[i - 1]); };
-  function setWheel(el, v) {
-    const i = scoreOf(v) === null ? 0 : WHEEL_STEPS.indexOf(v.toFixed(1)) + 1;
-    el.scrollTop = Math.max(0, i) * ITEM_H;
-    markWheel(el);
+  function setDial(el, v) {
+    v = scoreOf(v) === null ? null : Math.min(5, Math.max(0, v));
+    el._value = v;
+    const [kx, ky] = dialPoint(dialAngle(v ?? 0));
+    el.querySelector('.dial-value').setAttribute('d', v === null || v === 0 ? '' : arcPath(dialAngle(0), dialAngle(v)));
+    const knob = el.querySelector('.dial-knob');
+    knob.setAttribute('cx', kx.toFixed(2)); knob.setAttribute('cy', ky.toFixed(2));
+    knob.classList.toggle('is-blank', v === null);
+    el.querySelector('.dial-readout').textContent = v === null ? '—' : v.toFixed(1);
+    el.querySelector('.dial-clear').hidden = v === null;
+    el.setAttribute('aria-valuenow', v === null ? '' : v.toFixed(1));
+    el.setAttribute('aria-valuetext', v === null ? 'no score' : `${v.toFixed(1)} out of 5`);
+    el.dispatchEvent(new CustomEvent('dialchange', { bubbles: true }));
   }
+  const dialValue = (el) => el._value;
 
   // ---------------------------------------------------------------- drank dialog
   const drankDlg = $('#drank');
   let drankCtx = null;
-  document.querySelectorAll('#drank .wheel').forEach(buildWheel);
+  document.querySelectorAll('#drank .dial').forEach(buildDial);
 
   // Where a drunk bottle goes back to, so it can be bought again.
   function fillerTarget(tableId, row) {
@@ -652,23 +693,23 @@
     const target = fillerTarget(tableId, row);
     const left = qtyOf(row) - 1;
     $('#drank-hint').textContent = (left > 0 ? `${left} left in the cellar. ` : 'Last one: it leaves the cellar. ') + `It goes back to ${TABLES[target].title} so it can be bought again.`;
+    drankDlg.querySelectorAll('.dial').forEach((d) => setDial(d, null));
     drankDlg.showModal();
-    drankDlg.querySelectorAll('.wheel').forEach((w) => setWheel(w, null));
     updateDrankAvg();
   }
   function updateDrankAvg() {
-    const matt = wheelValue($('#wheel-matt')), rachael = wheelValue($('#wheel-rachael'));
+    const matt = dialValue($('#dial-matt')), rachael = dialValue($('#dial-rachael'));
     const avg = avgOf({ matt, rachael });
     $('#drank-avg').textContent = avg === null ? '—' : avg.toFixed(1);
     $('#drank-save').disabled = avg === null;
   }
-  drankDlg.addEventListener('wheelchange', updateDrankAvg);
+  drankDlg.addEventListener('dialchange', updateDrankAvg);
   $('#drank-cancel').addEventListener('click', () => drankDlg.close());
   $('#drank-form').addEventListener('submit', (e) => {
     e.preventDefault();
     if (!drankCtx) return;
     const { tableId, row } = drankCtx;
-    const matt = wheelValue($('#wheel-matt')), rachael = wheelValue($('#wheel-rachael'));
+    const matt = dialValue($('#dial-matt')), rachael = dialValue($('#dial-rachael'));
     if (matt === null && rachael === null) return;
     const list = state.doc[TABLES[tableId].list];
     const live = list.find((r) => r.id === row.id);
