@@ -289,7 +289,7 @@
     const body = shown.map((r) => {
       const cells = def.columns.map((c) => `<td${c.cls ? ` class="${c.cls}"` : ''}>${c.html(r, id)}</td>`).join('');
       const actions = `<td class="col-actions">
-          ${def.bought ? `<button type="button" class="btn small" data-act="bought" data-table="${id}" data-id="${esc(r.id)}">Bought</button>` : ''}
+          ${def.bought ? `<button type="button" class="btn small" data-act="bought" data-table="${id}" data-id="${esc(r.id)}">Add to cellar</button>` : ''}
           ${def.drank ? `<button type="button" class="btn small" data-act="drank" data-table="${id}" data-id="${esc(r.id)}">Drank</button>` : ''}
           <button type="button" class="btn small" data-act="edit" data-table="${id}" data-id="${esc(r.id)}">Edit</button>
           <button type="button" class="btn small danger" data-act="remove" data-table="${id}" data-id="${esc(r.id)}">Remove</button>
@@ -500,6 +500,7 @@
   const shelfMap = () => Object.fromEntries(state.doc.shelves.map((s) => [s.id, `${s.name} — ${s.tag}`]));
   const text = (name, label, v, extra = '') => `<label class="${extra}">${label}<input type="text" name="${name}" value="${esc(v)}"></label>`;
   const check = (name, label, v) => `<label class="check"><input type="checkbox" name="${name}"${v ? ' checked' : ''}> ${label}</label>`;
+  const withCheck = (field, checkbox) => `<div class="field-group">${field}${checkbox}</div>`;
   const num = (name, label, v, attrs = '') => `<label>${label}<input type="number" name="${name}" value="${scoreOf(v) === null ? '' : esc(v)}" ${attrs}></label>`;
   const select = (name, label, html, extra = '') => `<label class="${extra}">${label}<select name="${name}">${html}</select></label>`;
 
@@ -508,10 +509,10 @@
       text('house', 'House *', r.house), text('cuvee', 'Cuvée *', r.cuvee),
       select('style', 'Style', opts(styleMap(), r.style, '—')), select('category', 'Category', opts(CATEGORIES, r.category)),
       text('vintage', 'Vintage', r.vintage), text('disgorged', 'Disgorged', r.disgorged),
-      text('lees', 'Yrs on lees', r.lees), check('leesEst', 'Lees figure is an estimate', r.leesEst),
-      select('maturity', 'Maturity', opts(MATURITY, r.maturity, '—')), text('drinkBy', 'Drink by', r.drinkBy),
-      check('drinkByEst', 'Drink-by is an estimate', r.drinkByEst), select('shelf', 'Shelf', opts(shelfMap(), r.shelf, 'No shelf')),
-      num('qty', 'Quantity', qtyOf(r), 'min="1" step="1"'),
+      withCheck(text('lees', 'Yrs on lees', r.lees), check('leesEst', 'Lees figure is an estimate', r.leesEst)),
+      select('maturity', 'Maturity', opts(MATURITY, r.maturity, '—')),
+      withCheck(text('drinkBy', 'Drink by', r.drinkBy), check('drinkByEst', 'Drink-by is an estimate', r.drinkByEst)),
+      select('shelf', 'Shelf', opts(shelfMap(), r.shelf, 'No shelf')), num('qty', 'Quantity', qtyOf(r), 'min="1" step="1"'),
     ],
     red: (r) => [
       text('vineyard', 'Vineyard *', r.vineyard), text('bottle', 'Bottle *', r.bottle),
