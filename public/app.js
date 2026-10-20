@@ -570,12 +570,23 @@
     toggle.setAttribute('aria-expanded', String(open));
     toggle.textContent = open ? 'Fewer details' : 'More details: disgorgement, lees, maturity, drink by';
   }
-  // Vintage Champagne gets a suggested drink-by (vintage + 10, marked as an estimate) when the field is empty.
-  function suggestDrinkBy() {
-    const year = vintageYear($('#editor-fields [name="vintage"]').value);
-    const drinkBy = $('#editor-fields [name="drinkBy"]'), est = $('#editor-fields [name="drinkByEst"]');
-    if (!year || !drinkBy || drinkBy.value.trim()) return;
-    drinkBy.value = `~${year + 10}`; if (est) est.checked = true;
+  // Champagne ageing suggestions, only into empty fields:
+  //   years on lees = disgorgement year - vintage year
+  //   drink by      = disgorgement year + years on lees
+  function suggestAgeing() {
+    const field = (n) => $(`#editor-fields [name="${n}"]`);
+    const vintageEl = field('vintage'), disgorgedEl = field('disgorged'), leesEl = field('lees'), drinkByEl = field('drinkBy');
+    if (!vintageEl || !disgorgedEl || !leesEl || !drinkByEl) return;
+    const vintage = vintageYear(vintageEl.value), disgorged = vintageYear(disgorgedEl.value);
+    if (vintage && disgorged && disgorged >= vintage && !leesEl.value.trim()) {
+      leesEl.value = String(disgorged - vintage);
+      field('leesEst').checked = /~/.test(disgorgedEl.value);
+    }
+    const lees = parseFloat(leesEl.value);
+    if (disgorged && lees > 0 && !drinkByEl.value.trim()) {
+      drinkByEl.value = `~${disgorged + Math.round(lees)}`;
+      field('drinkByEst').checked = true;
+    }
   }
 
   function syncWineToggle() {
@@ -615,7 +626,8 @@
 
   $('#editor-fields').addEventListener('change', (e) => {
     if (e.target.name === 'wine') syncWineToggle();
-    if (e.target.name === 'vintage') { if (vintageYear(e.target.value) !== null) syncMoreDetails(true); suggestDrinkBy(); }
+    if (e.target.name === 'vintage' && vintageYear(e.target.value) !== null) syncMoreDetails(true);
+    if (['vintage', 'disgorged', 'lees'].includes(e.target.name)) suggestAgeing();
     if (e.target.name === 'category' && editorCtx && editorCtx.isNew) {
       const shelf = $('#editor-fields [name="shelf"]');
       if (shelf) shelf.value = defaultShelf(editorCtx.tableId, { category: e.target.value });

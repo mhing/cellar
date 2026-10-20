@@ -34,7 +34,7 @@ Each table has its own filter bar; **Clear** resets it. The view you were last o
 
 - **Edit** and **Remove** on each row. Editing opens a form; House and Cuvée (or Vineyard and Bottle for reds) are required, everything else is optional. Remove asks you to confirm.
   - For Champagne, the ageing fields (disgorgement, years on lees, maturity, drink by) sit behind **More details**. They open on their own when the bottle has a vintage year or any of them is filled in.
-  - A new bottle gets a shelf suggested from its category (Everyday → Bottom, other Champagne → Champagne Reserve, reds → Aging Reds). A vintage Champagne with an empty *Drink by* gets vintage + 10, marked as an estimate. Both are only suggestions; change them as you like.
+  - A new bottle gets a shelf suggested from its category (Everyday → Bottom, other Champagne → Champagne Reserve, reds → Aging Reds). With a vintage and a disgorgement date, *Yrs on lees* is filled in (disgorgement year minus vintage); with a disgorgement date and a lees figure, *Drink by* is filled in as disgorgement year plus the years on lees, marked as an estimate. These only fill empty fields; change them as you like.
 - **+ Add bottle** under each table.
 - **− and +** next to the quantity on cellar rows.
 - **Drank** on cellar rows: see below.
