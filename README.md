@@ -43,7 +43,7 @@ To move a bottle to another shelf, edit it and change its **Shelf**. The shelf m
 
 ### Drinking a bottle
 
-In edit mode, press **Drank** on a cellar row. Set Matt's and Rachael's scores on the two wheels (0.0 to 5.0 in steps of 0.1; leave one blank if only one of you tried it), add the date and any notes, and save. Then:
+In edit mode, press **Drank** on a cellar row. Turn the two dials to set Matt's and Rachael's scores (0.0 to 5.0 in steps of 0.1; drag or tap the ring, or use the arrow keys; press *clear* to leave one blank if only one of you tried it), add the date and any notes, and save. Then:
 
 - the bottle's quantity drops by one, and the row leaves the cellar and the shelf map when it reaches zero;
 - the wine goes back to a fillers list so it can be bought again: Champagne with the *Everyday* category goes to Everyday stock, other Champagne to Premier Fillers, reds to Red fillers;
