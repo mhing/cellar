@@ -508,11 +508,16 @@
     champagne: (r) => [
       text('house', 'House *', r.house), text('cuvee', 'Cuvée *', r.cuvee),
       select('style', 'Style', opts(styleMap(), r.style, '—')), select('category', 'Category', opts(CATEGORIES, r.category)),
-      text('vintage', 'Vintage', r.vintage), text('disgorged', 'Disgorged', r.disgorged),
-      withCheck(text('lees', 'Yrs on lees', r.lees), check('leesEst', 'Lees figure is an estimate', r.leesEst)),
-      select('maturity', 'Maturity', opts(MATURITY, r.maturity, '—')),
-      withCheck(text('drinkBy', 'Drink by', r.drinkBy), check('drinkByEst', 'Drink-by is an estimate', r.drinkByEst)),
-      select('shelf', 'Shelf', opts(shelfMap(), r.shelf, 'No shelf')), num('qty', 'Quantity', qtyOf(r), 'min="1" step="1"'),
+      text('vintage', 'Vintage', r.vintage), select('shelf', 'Shelf', opts(shelfMap(), r.shelf, 'No shelf')),
+      num('qty', 'Quantity', qtyOf(r), 'min="1" step="1"'),
+      // Ageing details matter for vintage bottles; for NV they stay folded unless filled in.
+      `<button type="button" class="more-toggle full" data-more-toggle aria-expanded="false">More details: disgorgement, lees, maturity, drink by</button>`,
+      `<div class="more" data-more hidden>
+        ${text('disgorged', 'Disgorged', r.disgorged)}
+        ${withCheck(text('lees', 'Yrs on lees', r.lees), check('leesEst', 'Lees figure is an estimate', r.leesEst))}
+        ${select('maturity', 'Maturity', opts(MATURITY, r.maturity, '—'))}
+        ${withCheck(text('drinkBy', 'Drink by', r.drinkBy), check('drinkByEst', 'Drink-by is an estimate', r.drinkByEst))}
+      </div>`,
     ],
     red: (r) => [
       text('vineyard', 'Vineyard *', r.vineyard), text('bottle', 'Bottle *', r.bottle),
@@ -548,6 +553,31 @@
     ],
   };
 
+  const vintageYear = (v) => { const m = String(v || '').match(/\b(19|20)\d{2}\b/); return m ? Number(m[0]) : null; };
+  // First shelf whose tag fits the bottle, by the tag words used in the cellar.
+  function defaultShelf(tableId, row) {
+    const want = tableId === 'reds' ? /red/i : row.category === 'everyday' ? /everyday/i : /champagne/i;
+    const hit = state.doc.shelves.find((s) => want.test(s.tag || ''));
+    return hit ? hit.id : '';
+  }
+  function syncMoreDetails(force) {
+    const more = $('#editor-fields [data-more]'), toggle = $('#editor-fields [data-more-toggle]');
+    if (!more || !toggle) return;
+    const hasValue = [...more.querySelectorAll('input[type="text"], select')].some((el) => el.value.trim());
+    const vintage = vintageYear($('#editor-fields [name="vintage"]').value);
+    const open = force !== undefined ? force : (more.hidden ? hasValue || vintage !== null : true);
+    more.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.textContent = open ? 'Fewer details' : 'More details: disgorgement, lees, maturity, drink by';
+  }
+  // Vintage Champagne gets a suggested drink-by (vintage + 10, marked as an estimate) when the field is empty.
+  function suggestDrinkBy() {
+    const year = vintageYear($('#editor-fields [name="vintage"]').value);
+    const drinkBy = $('#editor-fields [name="drinkBy"]'), est = $('#editor-fields [name="drinkByEst"]');
+    if (!year || !drinkBy || drinkBy.value.trim()) return;
+    drinkBy.value = `~${year + 10}`; if (est) est.checked = true;
+  }
+
   function syncWineToggle() {
     const wine = $('#editor-fields [name="wine"]');
     if (!wine) return;
@@ -559,8 +589,10 @@
     const def = TABLES[tableId];
     editorCtx = { tableId, row, isNew, onSave };
     $('#editor-title').textContent = title || (isNew ? `Add to ${def.title}` : `Edit ${def.title} bottle`);
+    if (isNew && !row.shelf && (tableId === 'champagne' || tableId === 'reds')) row.shelf = defaultShelf(tableId, row);
     $('#editor-fields').innerHTML = FORMS[def.form](row).join('') + extras;
     syncWineToggle();
+    syncMoreDetails();
     dialog.showModal();
     const first = $('#editor-fields input, #editor-fields select');
     if (first) first.focus();
@@ -581,7 +613,18 @@
     return out;
   }
 
-  $('#editor-fields').addEventListener('change', (e) => { if (e.target.name === 'wine') syncWineToggle(); });
+  $('#editor-fields').addEventListener('change', (e) => {
+    if (e.target.name === 'wine') syncWineToggle();
+    if (e.target.name === 'vintage') { if (vintageYear(e.target.value) !== null) syncMoreDetails(true); suggestDrinkBy(); }
+    if (e.target.name === 'category' && editorCtx && editorCtx.isNew) {
+      const shelf = $('#editor-fields [name="shelf"]');
+      if (shelf) shelf.value = defaultShelf(editorCtx.tableId, { category: e.target.value });
+    }
+  });
+  $('#editor-fields').addEventListener('click', (e) => {
+    const t = e.target.closest('[data-more-toggle]'); if (!t) return;
+    syncMoreDetails(t.getAttribute('aria-expanded') !== 'true');
+  });
   $('#editor-cancel').addEventListener('click', () => dialog.close());
   $('#editor-form').addEventListener('submit', (e) => {
     e.preventDefault();
