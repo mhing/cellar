@@ -18,6 +18,7 @@
     </div>
     <div class="header-actions">
       <span class="save-status" id="save-status" role="status" aria-live="polite"></span>
+      <button type="button" class="btn" id="bought-toggle">Bought</button>
       <button type="button" class="btn" id="edit-toggle" aria-pressed="false">Edit</button>
     </div>
   </header>
@@ -30,6 +31,8 @@
     <button type="button" class="view-tab" role="tab" data-view="red">Reds</button>
     <button type="button" class="view-tab" role="tab" data-view="shelves">Shelf map</button>
     <button type="button" class="view-tab" role="tab" data-view="fillers">Fillers</button>
+    <button type="button" class="view-tab" role="tab" data-view="ratings">Ratings</button>
+    <button type="button" class="view-tab" role="tab" data-view="recycle">Recycle bin</button>
   </nav>
 
   <main id="app">
@@ -43,6 +46,50 @@
       <div class="dialog-actions">
         <button type="button" class="btn ghost" id="editor-cancel">Cancel</button>
         <button type="submit" class="btn primary" id="editor-save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="drank" aria-labelledby="drank-title">
+    <form method="dialog" id="drank-form">
+      <h2 id="drank-title">Drank</h2>
+      <p class="section-note" id="drank-hint"></p>
+      <div class="wheels">
+        <div class="wheel-field"><span class="wheel-label">Matt</span><div class="wheel" id="wheel-matt" tabindex="0" aria-label="Matt's score"></div></div>
+        <div class="wheel-field"><span class="wheel-label">Rachael</span><div class="wheel" id="wheel-rachael" tabindex="0" aria-label="Rachael's score"></div></div>
+        <div class="wheel-field avg"><span class="wheel-label">Average</span><div class="avg-value" id="drank-avg">—</div></div>
+      </div>
+      <div class="form-grid">
+        <label>Drunk on<input type="date" id="drank-date" name="drankAt"></label>
+        <label class="full">Notes<textarea id="drank-notes" name="notes" placeholder="With what, with whom, how was it"></textarea></label>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn ghost" id="drank-cancel">Cancel</button>
+        <button type="submit" class="btn primary" id="drank-save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="bought" aria-labelledby="bought-title">
+    <form method="dialog" id="bought-form">
+      <h2 id="bought-title">Bought</h2>
+      <div class="mode-row" role="radiogroup" aria-label="What did you buy?">
+        <label class="mode"><input type="radio" name="mode" value="filler" checked> From the fillers lists</label>
+        <label class="mode"><input type="radio" name="mode" value="existing"> More of a bottle already in the cellar</label>
+        <label class="mode"><input type="radio" name="mode" value="new"> A new bottle</label>
+      </div>
+      <div class="form-grid">
+        <label class="full" data-mode="filler">Bottle<select id="bought-filler"></select></label>
+        <label class="full" data-mode="existing">Bottle<select id="bought-existing"></select></label>
+        <div class="full mode-row" data-mode="new">
+          <label class="mode"><input type="radio" name="newWine" value="champagne" checked> Champagne</label>
+          <label class="mode"><input type="radio" name="newWine" value="reds"> Red</label>
+        </div>
+        <label>Quantity<input type="number" id="bought-qty" min="1" step="1" value="1"></label>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn ghost" id="bought-cancel">Cancel</button>
+        <button type="submit" class="btn primary">Next</button>
       </div>
     </form>
   </dialog>
