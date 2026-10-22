@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "version": 1,
-  "updatedAt": "2026-09-26T09:09:14.873Z",
+  "updatedAt": "2026-10-20T18:30:54.307Z",
   "updatedBy": "seed",
   "shelves": [
     {
@@ -77,7 +77,7 @@
       "cuvee": "Cuvée D",
       "style": "pinot",
       "vintage": "NV",
-      "disgorged": "Unknown",
+      "disgorged": "",
       "lees": "5+",
       "leesEst": false,
       "category": "special",
@@ -103,27 +103,27 @@
     },
     {
       "id": "c-6",
+      "house": "Waitrose (Castelnau)",
+      "cuvee": "No.1 Brut Special Reserve Vintage",
+      "style": "chard",
+      "vintage": "2018",
+      "disgorged": "",
+      "lees": "",
+      "leesEst": false,
+      "category": "special",
+      "maturity": "peak",
+      "drinkBy": "~2030",
+      "drinkByEst": true,
+      "shelf": "s4"
+    },
+    {
+      "id": "c-7",
       "house": "A. Bergère",
       "cuvee": "Les Clos",
       "style": "bdm",
       "vintage": "TBC",
       "disgorged": "01/2026",
-      "lees": "—",
-      "leesEst": false,
-      "category": "aging",
-      "maturity": "near",
-      "drinkBy": "~2033",
-      "drinkByEst": false,
-      "shelf": "s3"
-    },
-    {
-      "id": "c-7",
-      "house": "Leclerc Briant",
-      "cuvee": "Blanc de Meunier",
-      "style": "bdm",
-      "vintage": "TBC",
-      "disgorged": "02/2026",
-      "lees": "—",
+      "lees": "",
       "leesEst": false,
       "category": "aging",
       "maturity": "near",
@@ -133,12 +133,27 @@
     },
     {
       "id": "c-8",
+      "house": "Leclerc Briant",
+      "cuvee": "Blanc de Meunier",
+      "style": "bdm",
+      "vintage": "TBC",
+      "disgorged": "02/2026",
+      "lees": "",
+      "leesEst": false,
+      "category": "aging",
+      "maturity": "near",
+      "drinkBy": "~2033",
+      "drinkByEst": false,
+      "shelf": "s3"
+    },
+    {
+      "id": "c-9",
       "house": "A. Bergère",
       "cuvee": "Blanc de Blancs Grand Cru",
       "style": "bdb",
       "vintage": "TBC",
       "disgorged": "06/2026",
-      "lees": "—",
+      "lees": "",
       "leesEst": false,
       "category": "aging",
       "maturity": "young",
@@ -147,28 +162,13 @@
       "shelf": "s3"
     },
     {
-      "id": "c-9",
+      "id": "c-a",
       "house": "Bollinger",
       "cuvee": "Special Cuvée",
       "style": "pinot",
       "vintage": "NV",
-      "disgorged": "—",
-      "lees": "—",
-      "leesEst": false,
-      "category": "everyday",
-      "maturity": "",
-      "drinkBy": "",
-      "drinkByEst": false,
-      "shelf": "bottom"
-    },
-    {
-      "id": "c-a",
-      "house": "Gosset",
-      "cuvee": "Grande Réserve",
-      "style": "all",
-      "vintage": "NV",
-      "disgorged": "—",
-      "lees": "—",
+      "disgorged": "",
+      "lees": "",
       "leesEst": false,
       "category": "everyday",
       "maturity": "",
@@ -178,12 +178,12 @@
     },
     {
       "id": "c-b",
-      "house": "De Venoge",
-      "cuvee": "Princes Extra Brut",
+      "house": "Gosset",
+      "cuvee": "Grande Réserve",
       "style": "all",
       "vintage": "NV",
-      "disgorged": "—",
-      "lees": "—",
+      "disgorged": "",
+      "lees": "",
       "leesEst": false,
       "category": "everyday",
       "maturity": "",
@@ -193,12 +193,12 @@
     },
     {
       "id": "c-c",
-      "house": "Perrier-Jouët",
-      "cuvee": "Grand Brut",
+      "house": "De Venoge",
+      "cuvee": "Princes Extra Brut",
       "style": "all",
       "vintage": "NV",
-      "disgorged": "—",
-      "lees": "—",
+      "disgorged": "",
+      "lees": "",
       "leesEst": false,
       "category": "everyday",
       "maturity": "",
@@ -208,12 +208,12 @@
     },
     {
       "id": "c-d",
-      "house": "Moët & Chandon",
-      "cuvee": "Impérial Brut",
+      "house": "Perrier-Jouët",
+      "cuvee": "Grand Brut",
       "style": "all",
       "vintage": "NV",
-      "disgorged": "—",
-      "lees": "—",
+      "disgorged": "",
+      "lees": "",
       "leesEst": false,
       "category": "everyday",
       "maturity": "",
@@ -223,12 +223,42 @@
     },
     {
       "id": "c-e",
+      "house": "Moët & Chandon",
+      "cuvee": "Impérial Brut",
+      "style": "all",
+      "vintage": "NV",
+      "disgorged": "",
+      "lees": "",
+      "leesEst": false,
+      "category": "everyday",
+      "maturity": "",
+      "drinkBy": "",
+      "drinkByEst": false,
+      "shelf": "bottom"
+    },
+    {
+      "id": "c-f",
       "house": "Veuve Clicquot",
       "cuvee": "Rosé",
       "style": "pinot",
       "vintage": "NV",
-      "disgorged": "—",
-      "lees": "—",
+      "disgorged": "",
+      "lees": "",
+      "leesEst": false,
+      "category": "everyday",
+      "maturity": "",
+      "drinkBy": "",
+      "drinkByEst": false,
+      "shelf": "bottom"
+    },
+    {
+      "id": "c-g",
+      "house": "Ayala",
+      "cuvee": "Brut Majeur",
+      "style": "chard",
+      "vintage": "NV",
+      "disgorged": "",
+      "lees": "~3",
       "leesEst": false,
       "category": "everyday",
       "maturity": "",
@@ -239,7 +269,7 @@
   ],
   "reds": [
     {
-      "id": "r-f",
+      "id": "r-h",
       "vineyard": "St Hugo",
       "bottle": "DR3 Barossa Shiraz 2014",
       "style": "Shiraz",
@@ -249,7 +279,7 @@
       "shelf": "s1"
     },
     {
-      "id": "r-g",
+      "id": "r-i",
       "vineyard": "Quinta da Pedra Alta",
       "bottle": "\"Melhor Tinto\" 2018",
       "style": "Douro blend",
@@ -259,7 +289,7 @@
       "shelf": "s1"
     },
     {
-      "id": "r-h",
+      "id": "r-j",
       "vineyard": "Fuentes del Silencio",
       "bottle": "\"Las Quintas\" 2018",
       "style": "Field blend",
@@ -269,7 +299,7 @@
       "shelf": "s1"
     },
     {
-      "id": "r-i",
+      "id": "r-k",
       "vineyard": "Hartenberg",
       "bottle": "\"Gravel Hill\" Shiraz 2016",
       "style": "Shiraz",
@@ -279,7 +309,7 @@
       "shelf": "s1"
     },
     {
-      "id": "r-j",
+      "id": "r-l",
       "vineyard": "Kinsbrook Vineyard",
       "bottle": "\"NIMBY\"",
       "style": "Pinot Noir / Rondo",
@@ -291,7 +321,7 @@
   ],
   "nextUp": [
     {
-      "id": "f-k",
+      "id": "f-19",
       "house": "Taittinger",
       "cuvee": "\"Comtes de Champagne\" 2012/13",
       "price": "£158",
@@ -302,7 +332,7 @@
       "notes": "£169 single. House prestige cuvée, Blanc de Blancs Grand Cru. The splurge of the order, with 2012 a strong vintage."
     },
     {
-      "id": "f-l",
+      "id": "f-1a",
       "house": "Pol Roger",
       "cuvee": "Vintage 2016/18",
       "price": "£98",
@@ -313,7 +343,7 @@
       "notes": "£101 single. 60% Pinot Noir, 40% Chardonnay. Classic long-ager and a new house for the cabinet."
     },
     {
-      "id": "f-m",
+      "id": "f-1b",
       "house": "Moët & Chandon",
       "cuvee": "\"Grand Vintage\" 2016",
       "price": "£66",
@@ -324,7 +354,7 @@
       "notes": "£71 single. Vintage tier above Impérial; side-by-side with the Impérial on the bottom shelf."
     },
     {
-      "id": "f-n",
+      "id": "f-1c",
       "house": "Pol Roger",
       "cuvee": "\"Réserve\" Brut",
       "price": "£57",
@@ -335,7 +365,7 @@
       "notes": "£62 single. Everyday all-rounder; pairs with the Vintage for a same-house comparison."
     },
     {
-      "id": "f-o",
+      "id": "f-1d",
       "house": "Boizel",
       "cuvee": "Blanc de Noirs \"La Montagne\" Premier Cru",
       "price": "£49",
@@ -346,7 +376,7 @@
       "notes": "£57 single. 100% Pinot Noir. Fills the Blanc de Noirs slot in the everyday rotation."
     },
     {
-      "id": "f-p",
+      "id": "f-1e",
       "house": "Jean-Noël Haton",
       "cuvee": "\"Classic\" Blanc de Noirs",
       "price": "£28",
@@ -360,7 +390,7 @@
   "nextUpNote": "Total £456 on Mix Six (saving £35 on single-bottle prices). For a future red order: E. Guigal Châteauneuf-du-Pape 2019/20 (£37 Mix Six) is in stock at Wanstead.",
   "premier": [
     {
-      "id": "f-q",
+      "id": "f-1f",
       "house": "Billecart-Salmon",
       "cuvee": "\"Cuvée Nicolas François Billecart\" 2012",
       "price": "£156",
@@ -371,7 +401,7 @@
       "notes": "House prestige cuvée · 2012 vintage. New house, and one of the longest-lived prestige cuvées. Released late, so often ready on arrival."
     },
     {
-      "id": "f-r",
+      "id": "f-1g",
       "house": "Billecart-Salmon",
       "cuvee": "\"Le Blanc de Blancs\" Extra Brut",
       "price": "£76",
@@ -382,7 +412,7 @@
       "notes": "£79 single. Grand Cru Chardonnay. Not currently at Wanstead; order online."
     },
     {
-      "id": "f-s",
+      "id": "f-1h",
       "house": "Billecart-Salmon",
       "cuvee": "\"Le Rosé\" Extra Brut",
       "price": "£71",
@@ -393,7 +423,7 @@
       "notes": "£78 single. In stock at Wanstead. Benchmark NV rosé. Drink fresh."
     },
     {
-      "id": "f-t",
+      "id": "f-1i",
       "house": "Boizel",
       "cuvee": "\"Grand Vintage\" 2014",
       "price": "£60",
@@ -404,7 +434,7 @@
       "notes": "Family-owned house, Épernay. Value vintage option."
     },
     {
-      "id": "f-u",
+      "id": "f-1j",
       "house": "Bollinger",
       "cuvee": "\"La Grande Année\" 2015",
       "price": "£145",
@@ -415,7 +445,7 @@
       "notes": "Pinot Noir-led vintage, oak-fermented. Two-tier pairing with the Special Cuvée already held."
     },
     {
-      "id": "f-v",
+      "id": "f-1k",
       "house": "Laurent-Perrier",
       "cuvee": "\"Brut Millésimé\" 2015",
       "price": "£82",
@@ -426,7 +456,7 @@
       "notes": "Grande marque vintage. New house, fresh Chardonnay-leaning style."
     },
     {
-      "id": "f-w",
+      "id": "f-1l",
       "house": "Moët & Chandon",
       "cuvee": "\"Grand Vintage\" 2016",
       "price": "£66",
@@ -437,7 +467,7 @@
       "notes": "In the Mix Six. Vintage tier above Impérial. Value vintage. Side-by-side with the Impérial Brut on the bottom shelf."
     },
     {
-      "id": "f-x",
+      "id": "f-1m",
       "house": "Pol Roger",
       "cuvee": "Vintage 2016/18",
       "price": "£98",
@@ -448,7 +478,7 @@
       "notes": "In the Mix Six. Grande marque vintage. New house, classic long-ager, fair price for the quality."
     },
     {
-      "id": "f-y",
+      "id": "f-1n",
       "house": "Taittinger",
       "cuvee": "\"Comtes de Champagne\" 2012/13",
       "price": "£158",
@@ -459,7 +489,7 @@
       "notes": "In the Mix Six. House prestige cuvée · Blanc de Blancs Grand Cru. The one splurge. New house for the cabinet and a benchmark prestige Blanc de Blancs, with 2012 a strong vintage."
     },
     {
-      "id": "f-z",
+      "id": "f-1o",
       "house": "Veuve Clicquot",
       "cuvee": "\"La Grande Dame\" 2015/18",
       "price": "£187",
@@ -472,7 +502,7 @@
   ],
   "everyday": [
     {
-      "id": "e-10",
+      "id": "e-m",
       "house": "Billecart-Salmon",
       "cuvee": "\"Le Réserve\" Extra Brut",
       "price": "£50",
@@ -482,7 +512,7 @@
       "notes": "£57 single. In stock at Wanstead. 43% Meunier, 29% Chardonnay, 28% Pinot Noir. Extra Brut (low dosage)."
     },
     {
-      "id": "e-11",
+      "id": "e-n",
       "house": "Boizel",
       "cuvee": "Blanc de Blancs \"La Côte\" Premier Cru",
       "price": "£40–50",
@@ -492,7 +522,7 @@
       "notes": ""
     },
     {
-      "id": "e-12",
+      "id": "e-o",
       "house": "Boizel",
       "cuvee": "Blanc de Noirs \"La Montagne\" Premier Cru",
       "price": "£49",
@@ -502,7 +532,7 @@
       "notes": "In the Mix Six."
     },
     {
-      "id": "e-13",
+      "id": "e-p",
       "house": "Boizel",
       "cuvee": "Brut Réserve",
       "price": "£30–40",
@@ -512,7 +542,7 @@
       "notes": ""
     },
     {
-      "id": "e-14",
+      "id": "e-q",
       "house": "Bollinger",
       "cuvee": "Special Cuvée",
       "price": "£50–60",
@@ -522,7 +552,7 @@
       "notes": "In Cellar"
     },
     {
-      "id": "e-15",
+      "id": "e-r",
       "house": "Charles Heidsieck",
       "cuvee": "Brut Réserve",
       "price": "£45–55",
@@ -532,7 +562,7 @@
       "notes": ""
     },
     {
-      "id": "e-16",
+      "id": "e-s",
       "house": "Devaux",
       "cuvee": "Blanc de Blancs",
       "price": "£40–50",
@@ -542,7 +572,7 @@
       "notes": ""
     },
     {
-      "id": "e-17",
+      "id": "e-t",
       "house": "Devaux",
       "cuvee": "Blanc de Noirs",
       "price": "£35–45",
@@ -552,7 +582,7 @@
       "notes": ""
     },
     {
-      "id": "e-18",
+      "id": "e-u",
       "house": "Fleury",
       "cuvee": "Blanc de Noirs",
       "price": "£40–50",
@@ -562,7 +592,7 @@
       "notes": "Biodynamic grower-house"
     },
     {
-      "id": "e-19",
+      "id": "e-v",
       "house": "Jean-Noël Haton",
       "cuvee": "\"Classic\" Blanc de Noirs",
       "price": "£28",
@@ -572,7 +602,7 @@
       "notes": "In the Mix Six. 60% Meunier, 40% Pinot Noir"
     },
     {
-      "id": "e-1a",
+      "id": "e-w",
       "house": "Lanson",
       "cuvee": "Le Blanc de Blancs",
       "price": "£45–55",
@@ -582,7 +612,7 @@
       "notes": ""
     },
     {
-      "id": "e-1b",
+      "id": "e-x",
       "house": "Laurent-Perrier",
       "cuvee": "La Cuvée",
       "price": "£40–50",
@@ -592,7 +622,7 @@
       "notes": ""
     },
     {
-      "id": "e-1c",
+      "id": "e-y",
       "house": "Moët & Chandon",
       "cuvee": "Impérial Brut",
       "price": "£40–50",
@@ -602,7 +632,7 @@
       "notes": "In Cellar"
     },
     {
-      "id": "e-1d",
+      "id": "e-z",
       "house": "Nicolas Feuillatte",
       "cuvee": "Blanc de Blancs",
       "price": "£35–45",
@@ -612,7 +642,7 @@
       "notes": ""
     },
     {
-      "id": "e-1e",
+      "id": "e-10",
       "house": "Palmer",
       "cuvee": "Blanc de Blancs",
       "price": "£45–55",
@@ -622,7 +652,7 @@
       "notes": ""
     },
     {
-      "id": "e-1f",
+      "id": "e-11",
       "house": "Perrier-Jouët",
       "cuvee": "Grand Brut",
       "price": "£40–50",
@@ -632,7 +662,7 @@
       "notes": "In Cellar"
     },
     {
-      "id": "e-1g",
+      "id": "e-12",
       "house": "Pol Roger",
       "cuvee": "Brut Réserve",
       "price": "£57",
@@ -642,7 +672,7 @@
       "notes": "In the Mix Six."
     },
     {
-      "id": "e-1h",
+      "id": "e-13",
       "house": "René Jolly",
       "cuvee": "Blanc de Noirs",
       "price": "£35–45",
@@ -652,7 +682,7 @@
       "notes": ""
     },
     {
-      "id": "e-1i",
+      "id": "e-14",
       "house": "Ruinart",
       "cuvee": "Blanc de Blancs",
       "price": "£80–95",
@@ -662,7 +692,7 @@
       "notes": "Top of the everyday range"
     },
     {
-      "id": "e-1j",
+      "id": "e-15",
       "house": "Taittinger",
       "cuvee": "Brut Réserve",
       "price": "£40–50",
@@ -672,7 +702,7 @@
       "notes": ""
     },
     {
-      "id": "e-1k",
+      "id": "e-16",
       "house": "Veuve Clicquot",
       "cuvee": "Yellow Label",
       "price": "£45–55",
@@ -682,7 +712,7 @@
       "notes": ""
     },
     {
-      "id": "e-1l",
+      "id": "e-17",
       "house": "Waitrose",
       "cuvee": "Blanc de Blancs Brut",
       "price": "£25–35",
@@ -692,7 +722,7 @@
       "notes": "Own label"
     },
     {
-      "id": "e-1m",
+      "id": "e-18",
       "house": "Waitrose",
       "cuvee": "Blanc de Noirs",
       "price": "£25–35",
