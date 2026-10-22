@@ -44,7 +44,9 @@
       <h2 id="editor-title">Edit bottle</h2>
       <div id="editor-fields" class="form-grid"></div>
       <div class="dialog-actions">
+        <span class="step-note" id="editor-step" hidden></span>
         <button type="button" class="btn ghost" id="editor-cancel">Cancel</button>
+        <button type="button" class="btn ghost" id="editor-back" hidden>Back</button>
         <button type="submit" class="btn primary" id="editor-save">Save</button>
       </div>
     </form>
@@ -73,23 +75,31 @@
   <dialog id="bought" aria-labelledby="bought-title">
     <form method="dialog" id="bought-form">
       <h2 id="bought-title">Add bottles</h2>
+      <p class="section-note">Build the list, then fill in the details for each bottle.</p>
       <div class="mode-row" role="radiogroup" aria-label="What are you adding?">
         <label class="mode"><input type="radio" name="mode" value="filler" checked> From the fillers lists</label>
         <label class="mode"><input type="radio" name="mode" value="existing"> More of a bottle already in the cellar</label>
         <label class="mode"><input type="radio" name="mode" value="new"> A new bottle</label>
       </div>
-      <div class="form-grid">
+      <div class="form-grid picker">
         <label class="full" data-mode="filler">Bottle<select id="bought-filler"></select></label>
         <label class="full" data-mode="existing">Bottle<select id="bought-existing"></select></label>
         <div class="full mode-row" data-mode="new">
           <label class="mode"><input type="radio" name="newWine" value="champagne" checked> Champagne</label>
           <label class="mode"><input type="radio" name="newWine" value="reds"> Red</label>
         </div>
+        <label data-mode="new" data-new-field="house">House *<input type="text" id="bought-new-house" autocomplete="off"></label>
+        <label data-mode="new" data-new-field="cuvee">Cuvée *<input type="text" id="bought-new-cuvee" autocomplete="off"></label>
         <label>Quantity<input type="number" id="bought-qty" min="1" step="1" value="1"></label>
+        <div class="picker-actions"><button type="button" class="btn" id="bought-add">Add to list</button></div>
+      </div>
+      <div class="cart" id="cart">
+        <div class="cart-head"><h3>To add</h3><span class="filter-count" id="cart-count"></span></div>
+        <ul class="cart-list" id="cart-list"></ul>
       </div>
       <div class="dialog-actions">
         <button type="button" class="btn ghost" id="bought-cancel">Cancel</button>
-        <button type="submit" class="btn primary">Next</button>
+        <button type="submit" class="btn primary" id="bought-next" disabled>Next: details</button>
       </div>
     </form>
   </dialog>

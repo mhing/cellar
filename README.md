@@ -34,11 +34,13 @@ Each table has its own filter bar; **Clear** resets it. The view you were last o
 
 - **Edit** and **Remove** on each row. Editing opens a form; House and Cuvée (or Vineyard and Bottle for reds) are required, everything else is optional. Remove asks you to confirm.
   - For Champagne, the ageing fields (disgorgement, years on lees, maturity, drink by) sit behind **More details**. They open on their own when the bottle has a vintage year or any of them is filled in.
-  - A new bottle gets a shelf suggested from its category (Everyday → Bottom, other Champagne → Champagne Reserve, reds → Aging Reds). With a vintage and a disgorgement date, *Yrs on lees* is filled in (disgorgement year minus vintage); with a disgorgement date and a lees figure, *Drink by* is filled in as disgorgement year plus the years on lees, marked as an estimate. These only fill empty fields; change them as you like.
+  - The form suggests the ageing fields as you type, and marks them as estimates. *Yrs on lees* = disgorgement year − vintage year − 1. *Drink by*: with a disgorgement date, disgorgement year + years on lees (if lees is blank, the vintage figure above, or 3 for NV); with no disgorgement date, vintage + 10 for vintage bottles and blank for NV. *Maturity* from the years left until drink-by: more than 5 → Youthful, 2 to 5 → Nearly there, 2 or fewer → At peak. A new bottle whose maturity comes out Youthful or Nearly there gets the *Aging* category.
+  - Suggestions never overwrite something you typed or picked yourself, and they update if you change the inputs they came from.
+  - A new bottle's shelf is suggested too: the shelf where the same wine already sits, else where most of that house sits, else the emptiest shelf whose tag fits the category (Everyday → Bottom, other Champagne → Champagne Reserve, reds → Aging Reds).
 - **+ Add bottle** under each table.
 - **− and +** next to the quantity on cellar rows.
 - **Drank** on cellar rows: see below.
-- **Add to cellar** on Next up rows: a shortcut into the Add bottles dialog for that bottle.
+- **Add to cellar** on Next up rows: puts that bottle on the Add bottles list.
 - **Edit note** on the Next up total line.
 
 To move a bottle to another shelf, edit it and change its **Shelf**. The shelf map updates itself.
@@ -55,17 +57,17 @@ Scores can be corrected later: in edit mode, use **Edit** on the Recycle bin row
 
 ### Adding bottles
 
-**Add bottles** in the header works in any view and asks what you are adding:
+**Add bottles** in the header works in any view and takes several bottles in one go.
 
-- **From the fillers lists**: pick a bottle from Next up, Premier, Everyday or Red fillers and a quantity. The cellar form opens pre-filled; bottles from Next up can be removed from the order at the same time.
-- **More of a bottle already in the cellar**: pick the bottle and a quantity; it is added to the count.
-- **A new bottle**: choose Champagne or Red and a quantity; a blank cellar form opens.
+1. **Build the list.** Pick what you are adding and press *Add to list*:
+   - *From the fillers lists*: a bottle from Next up, Premier, Everyday or Red fillers. Bottles from Next up are removed from the order when you save (untick *Remove from Next up* on the line to keep them).
+   - *More of a bottle already in the cellar*: its count goes up by the quantity.
+   - *A new bottle*: choose Champagne or Red and give its name.
+   Each line has a quantity you can change, and a *Remove* button.
+2. **Fill in the details.** Press *Next: details*. The cellar form opens for each bottle in turn ("Details 1 of 3"), pre-filled from the fillers row or the name you gave, with the shelf suggested. *Back* returns to the previous bottle or the list. Bottles already in the cellar skip this step.
+3. **Save all** on the last form saves everything as one change.
 
-### Saving
-
-Every change saves on its own; there's no save button. The header shows *Saving…*, then *Saved* with the time, and *Last saved* with the date when you open the page.
-
-If someone else saved a change after you loaded the page, your change is refused rather than overwriting theirs. You'll see a banner asking you to reload; do that, then make the change again. If your login has expired you'll be asked to sign in again, and the last change won't have been saved.
+**Add to cellar** on a Next up row puts that bottle on the list and opens the dialog.
 
 ## Signing in
 

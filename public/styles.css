@@ -217,6 +217,22 @@ body.editing .edit-only { display: inline-flex; }
 .mode-row .mode { display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: .9rem; font-weight: 500; color: var(--ink); }
 .form-grid .mode-row { margin-bottom: 0; }
 
+/* Add bottles: picker + cart */
+.picker { margin-bottom: 18px; }
+.picker-actions { display: flex; align-items: flex-end; }
+.cart { border-top: 1px solid var(--border); padding-top: 14px; }
+.cart-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+.cart-head h3 { font-size: 1rem; }
+.cart-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; }
+.cart-item { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); font-size: .9rem; }
+.cart-name { font-weight: 600; }
+.cart-source { font-family: 'IBM Plex Mono', monospace; font-size: .68rem; color: var(--muted); }
+.cart-qty { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; font-family: 'IBM Plex Mono', monospace; font-size: .8rem; color: var(--muted); }
+.cart-qty input { width: 58px; font: inherit; font-size: .9rem; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 3px 6px; }
+.cart-remove { font-size: .78rem; display: inline-flex; align-items: center; gap: 6px; }
+.cart-empty { color: var(--muted); font-size: .85rem; padding: 6px 2px; }
+.step-note { margin-right: auto; align-self: center; font-family: 'IBM Plex Mono', monospace; font-size: .72rem; color: var(--muted); }
+
 /* Folded ageing details in the Champagne form */
 .form-grid .more { display: contents; }
 .form-grid .more[hidden] { display: none !important; }
