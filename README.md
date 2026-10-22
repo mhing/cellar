@@ -7,7 +7,7 @@ A private, shared record of what's in the wine cellar: every bottle of Champagne
 The tabs across the top switch between five views:
 
 - **Full Cellar**: the Champagne and Red wine tables together, with shared Category and Maturity filters above them.
-- **Champagne**: just the Champagne table, with filters by house, style, category and maturity. Each row shows the house, cuvée, style, vintage, disgorgement date, years on lees, category, maturity and drink-by window.
+- **Champagne**: just the Champagne table, with filters by house, style, category and maturity. Each row shows the house, cuvée, style, vintage, category, maturity, drink-by window, quantity and rating. Disgorgement date and years on lees are on the bottle card.
 - **Reds**: just the red wine table: vineyard, bottle, style, category, maturity and drink-by.
 - **Shelf map**: every bottle laid out by shelf, so you can see what's where. Click a category in the legend to highlight those bottles on every shelf. Bottles with no shelf set are listed separately.
 - **Fillers**: the shopping side. *Next up* is the current order, *Premier Fillers* are the good bottles to keep an eye out for, and *Everyday stock fillers* are the reliable ones with links to where to buy them.
@@ -17,6 +17,10 @@ The tabs across the top switch between five views:
 The Reds tab also has a **Red fillers** table under the cellar reds: red bottles to buy again.
 
 Each table has its own filter bar; **Clear** resets it. The view you were last on is remembered on that device.
+
+### The bottle card
+
+Click any row in the cellar or fillers tables to open its card: every field (including disgorgement and years on lees for Champagne), the shelf, how many are in the cellar, and the ratings: the latest combined score with Matt's and Rachael's, and the history of every time it was drunk. From the card you can **Drank** (cellar bottles), **Add to cellar** (fillers), **Edit** or **Remove**, in any mode. Close it with the ×, Escape, or a click outside.
 
 ### Reading the tables
 
@@ -32,7 +36,7 @@ Each table has its own filter bar; **Clear** resets it. The view you were last o
 
 **Edit** in the header turns on edit mode; **Done editing** turns it off. In edit mode every table gains:
 
-- **Edit** and **Remove** on each row. Editing opens a form; House and Cuvée (or Vineyard and Bottle for reds) are required, everything else is optional. Remove asks you to confirm.
+- **Remove** on each row (asks you to confirm). To edit a bottle, open its card by clicking the row and press **Edit**: House and Cuvée (or Vineyard and Bottle for reds) are required, everything else is optional.
   - For Champagne, the ageing fields (disgorgement, years on lees, maturity, drink by) sit behind **More details**. They open on their own when the bottle has a vintage year or any of them is filled in.
   - The form suggests the ageing fields as you type, and marks them as estimates. *Yrs on lees* = disgorgement year − vintage year − 1. *Drink by*: with a disgorgement date, disgorgement year + years on lees (if lees is blank, the vintage figure above, or 3 for NV); with no disgorgement date, vintage + 10 for vintage bottles and blank for NV. *Maturity* from the years left until drink-by: more than 5 → Youthful, 2 to 5 → Nearly there, 2 or fewer → At peak. A new bottle whose maturity comes out Youthful or Nearly there gets the *Aging* category.
   - Suggestions never overwrite something you typed or picked yourself, and they update if you change the inputs they came from.
@@ -53,7 +57,7 @@ In edit mode, press **Drank** on a cellar row. Turn the two dials to set Matt's 
 - the wine goes back to a fillers list so it can be bought again: Champagne with the *Everyday* category goes to Everyday stock, other Champagne to Premier Fillers, reds to Red fillers;
 - the entry appears in the Recycle bin and the Ratings tab, and its combined score shows as a chip wherever that wine is listed.
 
-Scores can be corrected later: in edit mode, use **Edit** on the Recycle bin row.
+Scores can be corrected later: in edit mode, use **Edit** on the Recycle bin row. You can also press **Drank** on a bottle's card without turning on edit mode.
 
 ### Adding bottles
 

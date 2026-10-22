@@ -97,8 +97,6 @@
         { label: 'Cuvée', html: (r) => esc(r.cuvee) },
         { label: 'Style', html: styleChip },
         { label: 'Vintage', html: (r) => mono(r.vintage) },
-        { label: 'Disgorged', html: (r) => mono(r.disgorged) },
-        { label: 'Yrs on lees', html: (r) => (r.lees ? withEst(r.lees, r.leesEst) : '<span class="blank">—</span>') },
         { label: 'Category', html: (r) => catPill(r.category) },
         { label: 'Maturity', html: (r) => matPill(r.maturity) },
         { label: 'Drink by', html: (r) => withEst(r.drinkBy, r.drinkByEst) },
@@ -211,7 +209,7 @@
       emptyRow: () => ({ id: uid('e'), house: '', cuvee: '', price: '', style: '', where: '', link: '', notes: '' }),
     },
     recycle: {
-      list: 'ratings', title: 'Recycle bin', group: 'recycle', newest: true, noAdd: true,
+      list: 'ratings', title: 'Recycle bin', group: 'recycle', newest: true, noAdd: true, rowEdit: true,
       columns: [
         { label: 'Drunk', html: (r) => mono(fmtDate(r.drankAt)) },
         { label: 'House / Vineyard', html: (r) => `<span class="house">${esc(r.house)}</span>` },
@@ -291,10 +289,11 @@
       const actions = `<td class="col-actions">
           ${def.bought ? `<button type="button" class="btn small" data-act="bought" data-table="${id}" data-id="${esc(r.id)}">Add to cellar</button>` : ''}
           ${def.drank ? `<button type="button" class="btn small" data-act="drank" data-table="${id}" data-id="${esc(r.id)}">Drank</button>` : ''}
-          <button type="button" class="btn small" data-act="edit" data-table="${id}" data-id="${esc(r.id)}">Edit</button>
+          ${def.rowEdit ? `<button type="button" class="btn small" data-act="edit" data-table="${id}" data-id="${esc(r.id)}">Edit</button>` : ''}
           <button type="button" class="btn small danger" data-act="remove" data-table="${id}" data-id="${esc(r.id)}">Remove</button>
         </td>`;
-      return `<tr>${cells}${actions}</tr>`;
+      const open = def.rowEdit ? '' : ` class="row-link" data-open="${id}" data-id="${esc(r.id)}" tabindex="0" role="button" aria-label="Open ${esc((r.house || r.vineyard) + ' ' + (r.cuvee || r.bottle))}"`;
+      return `<tr${open}>${cells}${actions}</tr>`;
     }).join('') || `<tr><td colspan="${def.columns.length + 1}" class="blank">${rows.length ? 'No matches' : 'Nothing here yet'}</td></tr>`;
 
     const count = def.filters.length || (state.view === 'all' && (id === 'champagne' || id === 'reds'))
@@ -710,6 +709,94 @@
     commit();
   });
 
+  // ---------------------------------------------------------------- bottle card
+  // Opened by clicking a cellar or fillers row: every field, the rating history, and the actions.
+  const cardDlg = $('#card');
+  let cardCtx = null;
+  const shelfName = (id) => { const s = state.doc.shelves.find((x) => x.id === id); return s ? `${s.name} — ${s.tag}` : ''; };
+  const detail = (label, html) => `<div class="detail"><dt>${label}</dt><dd>${html || '<span class="blank">—</span>'}</dd></div>`;
+
+  function cardDetails(tableId, r) {
+    const est = (v, e) => (v ? withEst(v, e) : '');
+    if (tableId === 'champagne') return [
+      detail('Vintage', mono(r.vintage)), detail('Disgorged', r.disgorged ? mono(r.disgorged) : ''),
+      detail('Years on lees', est(r.lees, r.leesEst)), detail('Drink by', est(r.drinkBy, r.drinkByEst)),
+      detail('Shelf', esc(shelfName(r.shelf))), detail('In cellar', `<span class="mono">${qtyOf(r)}</span>`),
+    ];
+    if (tableId === 'reds') return [
+      detail('Style', esc(r.style)), detail('Drink by', r.drinkBy ? mono(r.drinkBy) : ''),
+      detail('Shelf', esc(shelfName(r.shelf))), detail('In cellar', `<span class="mono">${qtyOf(r)}</span>`),
+    ];
+    const out = [detail('Price', r.price ? mono(r.price) : '')];
+    if (tableId === 'everyday') {
+      const u = safeUrl(r.link);
+      out.push(detail('Where to buy', u ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(r.where || 'Link')}</a>` : esc(r.where)));
+    } else out.push(detail('Est. window', r.window ? mono(r.window) : ''));
+    out.push(detail('Notes', esc(r.notes)));
+    return out;
+  }
+
+  function openCard(tableId, id) {
+    const def = TABLES[tableId];
+    const row = state.doc[def.list].find((r) => r.id === id);
+    if (!row) return;
+    cardCtx = { tableId, id };
+    const isCellar = tableId === 'champagne' || tableId === 'reds';
+    const name = row.house || row.vineyard, sub = row.cuvee || row.bottle;
+    const history = state.doc.ratings.filter((e) => wineKey(e) === wineKey(row)).sort(byNewest);
+    const latest = history[0];
+    const avg = latest ? avgOf(latest) : null;
+    const chips = [tableId === 'reds' || row.wine === 'red' ? redStyleChip(row) : styleChip(row), catPill(row.category), matPill(row.maturity)].filter(Boolean).join('');
+    const ratings = latest
+      ? `<div class="score-block">
+          <div class="score-main"><span class="score-big">${fmtScore(avg)}</span><span class="score-label">combined</span></div>
+          <div class="score-each"><span><b>Matt</b> ${fmtScore(latest.matt)}</span><span><b>Rachael</b> ${fmtScore(latest.rachael)}</span></div>
+        </div>
+        <ol class="history">${history.map((e) => `<li><span class="mono">${esc(fmtDate(e.drankAt))}</span><span class="hist-scores mono">${fmtScore(e.matt)} · ${fmtScore(e.rachael)} · <b>${fmtScore(avgOf(e))}</b></span>${e.notes ? `<span class="hist-notes">${esc(e.notes)}</span>` : ''}</li>`).join('')}</ol>`
+      : '<p class="blank">Not rated yet.</p>';
+    const actions = isCellar
+      ? `<button type="button" class="btn primary" data-card-act="drank">Drank</button>
+         <button type="button" class="btn" data-card-act="edit">Edit</button>
+         <button type="button" class="btn danger" data-card-act="remove">Remove</button>`
+      : `<button type="button" class="btn primary" data-card-act="add">Add to cellar</button>
+         <button type="button" class="btn" data-card-act="edit">Edit</button>
+         <button type="button" class="btn danger" data-card-act="remove">Remove</button>`;
+    $('#card-body').innerHTML = `
+      <div class="card-band cat-band-${esc(row.category || 'none')}">
+        <div class="card-eyebrow">${esc(def.title)}</div>
+        <h2 id="card-title">${esc(name)}</h2>
+        <p class="card-sub">${esc(sub)}</p>
+        <div class="card-chips">${chips}</div>
+        <button type="button" class="card-close" data-card-act="close" aria-label="Close">×</button>
+      </div>
+      <div class="card-content">
+        <dl class="details">${cardDetails(tableId, row).join('')}</dl>
+        <section class="card-ratings"><h3>Ratings</h3>${ratings}</section>
+        <div class="dialog-actions card-actions">${actions}</div>
+      </div>`;
+    cardDlg.showModal();
+  }
+  cardDlg.addEventListener('click', (e) => {
+    if (e.target === cardDlg) { cardDlg.close(); return; } // backdrop
+    const b = e.target.closest('[data-card-act]'); if (!b || !cardCtx) return;
+    const { tableId, id } = cardCtx;
+    const def = TABLES[tableId];
+    const row = state.doc[def.list].find((r) => r.id === id);
+    cardDlg.close();
+    if (!row) return;
+    switch (b.dataset.cardAct) {
+      case 'edit': openEditor({ tableId, row: { ...row }, isNew: false }); break;
+      case 'drank': openDrank(tableId, row); break;
+      case 'add': addToCart(cartItemFromFiller(tableId, row, 1)); openBought(); break;
+      case 'remove':
+        if (confirm(`Remove ${row.house || row.vineyard} ${row.cuvee || row.bottle} from ${def.title}?`)) {
+          state.doc[def.list] = state.doc[def.list].filter((r) => r.id !== row.id);
+          commit();
+        }
+        break;
+    }
+  });
+
   // ---------------------------------------------------------------- rating dial
   // A round dial: a 270° arc from 0.0 (bottom-left) to 5.0 (bottom-right), turned by
   // dragging or tapping, with arrow keys for 0.1 steps. The value is kept on the element.
@@ -987,7 +1074,11 @@
     if (e.target.closest('[data-shelf-clear]')) { state.shelfCat = null; render(); return; }
 
     const act = e.target.closest('[data-act]');
-    if (!act) return;
+    if (!act) {
+      const tr = e.target.closest('tr[data-open]');
+      if (tr && !e.target.closest('a, button, select, input')) openCard(tr.dataset.open, tr.dataset.id);
+      return;
+    }
     const tableId = act.dataset.table;
     const def = TABLES[tableId];
     const list = def ? state.doc[def.list] : null;
@@ -1029,6 +1120,12 @@
         break;
       }
     }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const tr = e.target.closest && e.target.closest('tr[data-open]');
+    if (tr && e.target === tr) { e.preventDefault(); openCard(tr.dataset.open, tr.dataset.id); }
   });
 
   document.addEventListener('change', (e) => {
