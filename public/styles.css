@@ -130,6 +130,42 @@ body.editing .col-actions { display: table-cell; }
 .add-row { display: none; margin-top: 10px; }
 body.editing .add-row { display: inline-block; }
 
+.row-link { cursor: pointer; }
+.row-link:hover td { background: var(--surface-2); }
+.row-link:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* ---------- Bottle card ---------- */
+.bottle-card { padding: 0; overflow: hidden; width: min(560px, calc(100vw - 32px)); }
+.card-band { position: relative; padding: 22px 24px 18px; background: var(--surface-2); }
+.cat-band-aging { background: color-mix(in srgb, var(--c-aging) 18%, var(--surface)); }
+.cat-band-special { background: color-mix(in srgb, var(--c-special) 18%, var(--surface)); }
+.cat-band-wedding { background: color-mix(in srgb, var(--c-wedding) 18%, var(--surface)); }
+.cat-band-everyday { background: color-mix(in srgb, var(--c-everyday) 18%, var(--surface)); }
+.card-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.card-band h2 { font-size: 1.6rem; line-height: 1.1; margin: 0; padding-right: 36px; }
+.card-sub { margin: 4px 0 12px; font-size: 1.05rem; color: var(--ink); }
+.card-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.card-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: 1.2rem; line-height: 1; cursor: pointer; }
+.card-close:hover { color: var(--ink); }
+.card-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.card-content { padding: 18px 24px 22px; }
+.details { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; margin: 0 0 18px; }
+.detail dt { font-family: 'IBM Plex Mono', monospace; font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+.detail dd { margin: 0; font-size: .95rem; overflow-wrap: anywhere; }
+.card-ratings { margin: 0 0 6px; padding-top: 14px; border-top: 1px solid var(--border); }
+.card-ratings h3 { font-size: 1rem; margin-bottom: 10px; }
+.score-block { display: flex; align-items: center; gap: 18px; margin-bottom: 12px; }
+.score-main { display: flex; flex-direction: column; align-items: center; min-width: 84px; padding: 10px 14px; border-radius: 12px; background: var(--surface-2); }
+.score-big { font-family: 'Fraunces', serif; font-size: 2.2rem; font-weight: 600; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums; }
+.score-label { font-family: 'IBM Plex Mono', monospace; font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+.score-each { display: flex; flex-direction: column; gap: 6px; font-size: .95rem; font-variant-numeric: tabular-nums; }
+.score-each b { font-weight: 600; margin-right: 6px; }
+.history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; }
+.history li { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .85rem; padding: 6px 0; border-top: 1px dashed var(--border); }
+.hist-notes { flex-basis: 100%; color: var(--muted); }
+.card-actions { margin-top: 14px; flex-wrap: wrap; }
+.card-actions .danger { margin-right: auto; }
+
 /* ---------- Tokens ---------- */
 .pill, .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: .76rem; font-weight: 600; white-space: nowrap; }
 .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .7; flex: none; }
@@ -245,6 +281,8 @@ body.editing .edit-only { display: inline-flex; }
 
 @media (max-width: 560px) {
   .view-tab { padding: 10px 10px; font-size: .85rem; }
+  .details { grid-template-columns: 1fr; }
+  .card-band, .card-content { padding-left: 18px; padding-right: 18px; }
   .form-grid { grid-template-columns: 1fr; }
   td, th { padding: 10px 12px; }
 }
