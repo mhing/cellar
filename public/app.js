@@ -554,11 +554,26 @@
   };
 
   const vintageYear = (v) => { const m = String(v || '').match(/\b(19|20)\d{2}\b/); return m ? Number(m[0]) : null; };
-  // First shelf whose tag fits the bottle, by the tag words used in the cellar.
+  // Shelf suggestion, best first: where the same wine already sits, then where the
+  // same house mostly sits, then the emptiest shelf whose tag fits the category.
   function defaultShelf(tableId, row) {
+    const shelves = state.doc.shelves;
+    const onShelf = (r) => r.shelf && shelves.some((s) => s.id === r.shelf);
+    const cellar = [...state.doc.champagne, ...state.doc.reds].filter(onShelf);
+    const same = cellar.find((r) => wineKey(r) === wineKey(row));
+    if (same) return same.shelf;
+    const houseKey = norm(row.house || row.vineyard);
+    if (houseKey) {
+      const byShelf = {};
+      for (const r of cellar) if (norm(r.house || r.vineyard) === houseKey) byShelf[r.shelf] = (byShelf[r.shelf] || 0) + qtyOf(r);
+      const best = Object.entries(byShelf).sort((a, b) => b[1] - a[1])[0];
+      if (best) return best[0];
+    }
     const want = tableId === 'reds' ? /red/i : row.category === 'everyday' ? /everyday/i : /champagne/i;
-    const hit = state.doc.shelves.find((s) => want.test(s.tag || ''));
-    return hit ? hit.id : '';
+    const fitting = shelves.filter((s) => want.test(s.tag || ''));
+    if (!fitting.length) return '';
+    const load = (s) => cellar.filter((r) => r.shelf === s.id).reduce((n, r) => n + qtyOf(r), 0);
+    return fitting.sort((a, b) => load(a) - load(b))[0].id;
   }
   function syncMoreDetails(force) {
     const more = $('#editor-fields [data-more]'), toggle = $('#editor-fields [data-more-toggle]');
@@ -570,22 +585,51 @@
     toggle.setAttribute('aria-expanded', String(open));
     toggle.textContent = open ? 'Fewer details' : 'More details: disgorgement, lees, maturity, drink by';
   }
-  // Champagne ageing suggestions, only into empty fields:
-  //   years on lees = disgorgement year - vintage year
-  //   drink by      = disgorgement year + years on lees
+  // Champagne ageing suggestions, only into empty fields.
+  //   years on lees: vintage + disgorgement known -> disgorgement year - vintage year - 1
+  //   drink by, by what is known:
+  //     1. disgorgement + lees           -> disgorgement year + lees
+  //     2. disgorgement, no lees         -> vintage: as above; NV: 3 years
+  //     3. no disgorgement               -> vintage: vintage + 10; NV: blank
+  //   maturity, from years until drink-by: more than 5 -> Youthful, 2 to 5 -> Nearly there, 2 or fewer -> At peak
+  // A field is free to suggest into when it is empty or still holds our last suggestion;
+  // anything the user typed or picked themselves is left alone.
+  const free = (el) => !el.value.trim() || el.value === el.dataset.suggested;
+  const suggest = (el, value) => { el.value = value; el.dataset.suggested = value; };
   function suggestAgeing() {
     const field = (n) => $(`#editor-fields [name="${n}"]`);
-    const vintageEl = field('vintage'), disgorgedEl = field('disgorged'), leesEl = field('lees'), drinkByEl = field('drinkBy');
+    const vintageEl = field('vintage'), disgorgedEl = field('disgorged'), leesEl = field('lees'), drinkByEl = field('drinkBy'), maturityEl = field('maturity');
     if (!vintageEl || !disgorgedEl || !leesEl || !drinkByEl) return;
     const vintage = vintageYear(vintageEl.value), disgorged = vintageYear(disgorgedEl.value);
-    if (vintage && disgorged && disgorged >= vintage && !leesEl.value.trim()) {
-      leesEl.value = String(disgorged - vintage);
-      field('leesEst').checked = /~/.test(disgorgedEl.value);
+    const vintageLees = vintage && disgorged && disgorged > vintage ? Math.max(1, disgorged - vintage - 1) : null;
+    if (free(leesEl)) {
+      if (vintageLees) { suggest(leesEl, String(vintageLees)); field('leesEst').checked = true; }
+      else if (leesEl.dataset.suggested) { suggest(leesEl, ''); field('leesEst').checked = false; }
     }
-    const lees = parseFloat(leesEl.value);
-    if (disgorged && lees > 0 && !drinkByEl.value.trim()) {
-      drinkByEl.value = `~${disgorged + Math.round(lees)}`;
-      field('drinkByEst').checked = true;
+    if (free(drinkByEl)) {
+      const lees = parseFloat(leesEl.value);
+      let year = null;
+      if (disgorged) year = disgorged + Math.round(lees > 0 ? lees : (vintage ? vintageLees || 3 : 3));
+      else if (vintage) year = vintage + 10;
+      if (year) { suggest(drinkByEl, `~${year}`); field('drinkByEst').checked = true; }
+      else if (drinkByEl.dataset.suggested) { suggest(drinkByEl, ''); field('drinkByEst').checked = false; }
+    }
+    if (maturityEl && free(maturityEl)) {
+      const drinkBy = vintageYear(drinkByEl.value);
+      if (drinkBy) {
+        const left = drinkBy - new Date().getFullYear();
+        suggest(maturityEl, left > 5 ? 'young' : left > 2 ? 'near' : 'peak');
+        suggestCategory(maturityEl.value);
+      }
+    }
+  }
+  // A new bottle that still has ageing ahead of it is for laying down.
+  function suggestCategory(maturity) {
+    const categoryEl = $('#editor-fields [name="category"]');
+    if (!categoryEl || !editorCtx || !editorCtx.isNew || categoryEl.dataset.touched) return;
+    if ((maturity === 'young' || maturity === 'near') && categoryEl.value !== 'aging') {
+      categoryEl.value = 'aging';
+      categoryEl.dispatchEvent(new Event('change', { bubbles: true }));
     }
   }
 
@@ -628,12 +672,14 @@
   }
 
   $('#editor-fields').addEventListener('change', (e) => {
+    if (e.isTrusted) { e.target.dataset.touched = '1'; delete e.target.dataset.suggested; }
     if (e.target.name === 'wine') syncWineToggle();
     if (e.target.name === 'vintage' && vintageYear(e.target.value) !== null) syncMoreDetails(true);
-    if (['vintage', 'disgorged', 'lees'].includes(e.target.name)) suggestAgeing();
+    if (['vintage', 'disgorged', 'lees', 'drinkBy'].includes(e.target.name)) suggestAgeing();
+    if (e.target.name === 'maturity') suggestCategory(e.target.value);
     if (e.target.name === 'category' && editorCtx && editorCtx.isNew) {
       const shelf = $('#editor-fields [name="shelf"]');
-      if (shelf) shelf.value = defaultShelf(editorCtx.tableId, { category: e.target.value });
+      if (shelf && !shelf.dataset.touched) shelf.value = defaultShelf(editorCtx.tableId, { ...editorCtx.row, category: e.target.value });
     }
   });
   $('#editor-fields').addEventListener('click', (e) => {
