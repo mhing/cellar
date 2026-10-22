@@ -33,10 +33,12 @@ Each table has its own filter bar; **Clear** resets it. The view you were last o
 **Edit** in the header turns on edit mode; **Done editing** turns it off. In edit mode every table gains:
 
 - **Edit** and **Remove** on each row. Editing opens a form; House and Cuvée (or Vineyard and Bottle for reds) are required, everything else is optional. Remove asks you to confirm.
+  - For Champagne, the ageing fields (disgorgement, years on lees, maturity, drink by) sit behind **More details**. They open on their own when the bottle has a vintage year or any of them is filled in.
+  - A new bottle gets a shelf suggested from its category (Everyday → Bottom, other Champagne → Champagne Reserve, reds → Aging Reds). With a vintage and a disgorgement date, *Yrs on lees* is filled in (disgorgement year minus vintage); with a disgorgement date and a lees figure, *Drink by* is filled in as disgorgement year plus the years on lees, marked as an estimate. These only fill empty fields; change them as you like.
 - **+ Add bottle** under each table.
 - **− and +** next to the quantity on cellar rows.
 - **Drank** on cellar rows: see below.
-- **Bought** on Next up rows: a shortcut into the Bought dialog for that bottle.
+- **Add to cellar** on Next up rows: a shortcut into the Add bottles dialog for that bottle.
 - **Edit note** on the Next up total line.
 
 To move a bottle to another shelf, edit it and change its **Shelf**. The shelf map updates itself.
@@ -51,9 +53,9 @@ In edit mode, press **Drank** on a cellar row. Turn the two dials to set Matt's 
 
 Scores can be corrected later: in edit mode, use **Edit** on the Recycle bin row.
 
-### Buying bottles
+### Adding bottles
 
-**Bought** in the header works in any view and asks what you bought:
+**Add bottles** in the header works in any view and asks what you are adding:
 
 - **From the fillers lists**: pick a bottle from Next up, Premier, Everyday or Red fillers and a quantity. The cellar form opens pre-filled; bottles from Next up can be removed from the order at the same time.
 - **More of a bottle already in the cellar**: pick the bottle and a quantity; it is added to the count.

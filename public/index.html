@@ -18,7 +18,7 @@
     </div>
     <div class="header-actions">
       <span class="save-status" id="save-status" role="status" aria-live="polite"></span>
-      <button type="button" class="btn" id="bought-toggle">Bought</button>
+      <button type="button" class="btn" id="bought-toggle">Add bottles</button>
       <button type="button" class="btn" id="edit-toggle" aria-pressed="false">Edit</button>
     </div>
   </header>
@@ -72,8 +72,8 @@
 
   <dialog id="bought" aria-labelledby="bought-title">
     <form method="dialog" id="bought-form">
-      <h2 id="bought-title">Bought</h2>
-      <div class="mode-row" role="radiogroup" aria-label="What did you buy?">
+      <h2 id="bought-title">Add bottles</h2>
+      <div class="mode-row" role="radiogroup" aria-label="What are you adding?">
         <label class="mode"><input type="radio" name="mode" value="filler" checked> From the fillers lists</label>
         <label class="mode"><input type="radio" name="mode" value="existing"> More of a bottle already in the cellar</label>
         <label class="mode"><input type="radio" name="mode" value="new"> A new bottle</label>

@@ -289,7 +289,7 @@
     const body = shown.map((r) => {
       const cells = def.columns.map((c) => `<td${c.cls ? ` class="${c.cls}"` : ''}>${c.html(r, id)}</td>`).join('');
       const actions = `<td class="col-actions">
-          ${def.bought ? `<button type="button" class="btn small" data-act="bought" data-table="${id}" data-id="${esc(r.id)}">Bought</button>` : ''}
+          ${def.bought ? `<button type="button" class="btn small" data-act="bought" data-table="${id}" data-id="${esc(r.id)}">Add to cellar</button>` : ''}
           ${def.drank ? `<button type="button" class="btn small" data-act="drank" data-table="${id}" data-id="${esc(r.id)}">Drank</button>` : ''}
           <button type="button" class="btn small" data-act="edit" data-table="${id}" data-id="${esc(r.id)}">Edit</button>
           <button type="button" class="btn small danger" data-act="remove" data-table="${id}" data-id="${esc(r.id)}">Remove</button>
@@ -500,6 +500,7 @@
   const shelfMap = () => Object.fromEntries(state.doc.shelves.map((s) => [s.id, `${s.name} — ${s.tag}`]));
   const text = (name, label, v, extra = '') => `<label class="${extra}">${label}<input type="text" name="${name}" value="${esc(v)}"></label>`;
   const check = (name, label, v) => `<label class="check"><input type="checkbox" name="${name}"${v ? ' checked' : ''}> ${label}</label>`;
+  const withCheck = (field, checkbox) => `<div class="field-group">${field}${checkbox}</div>`;
   const num = (name, label, v, attrs = '') => `<label>${label}<input type="number" name="${name}" value="${scoreOf(v) === null ? '' : esc(v)}" ${attrs}></label>`;
   const select = (name, label, html, extra = '') => `<label class="${extra}">${label}<select name="${name}">${html}</select></label>`;
 
@@ -507,11 +508,16 @@
     champagne: (r) => [
       text('house', 'House *', r.house), text('cuvee', 'Cuvée *', r.cuvee),
       select('style', 'Style', opts(styleMap(), r.style, '—')), select('category', 'Category', opts(CATEGORIES, r.category)),
-      text('vintage', 'Vintage', r.vintage), text('disgorged', 'Disgorged', r.disgorged),
-      text('lees', 'Yrs on lees', r.lees), check('leesEst', 'Lees figure is an estimate', r.leesEst),
-      select('maturity', 'Maturity', opts(MATURITY, r.maturity, '—')), text('drinkBy', 'Drink by', r.drinkBy),
-      check('drinkByEst', 'Drink-by is an estimate', r.drinkByEst), select('shelf', 'Shelf', opts(shelfMap(), r.shelf, 'No shelf')),
+      text('vintage', 'Vintage', r.vintage), select('shelf', 'Shelf', opts(shelfMap(), r.shelf, 'No shelf')),
       num('qty', 'Quantity', qtyOf(r), 'min="1" step="1"'),
+      // Ageing details matter for vintage bottles; for NV they stay folded unless filled in.
+      `<button type="button" class="more-toggle full" data-more-toggle aria-expanded="false">More details: disgorgement, lees, maturity, drink by</button>`,
+      `<div class="more" data-more hidden>
+        ${text('disgorged', 'Disgorged', r.disgorged)}
+        ${withCheck(text('lees', 'Yrs on lees', r.lees), check('leesEst', 'Lees figure is an estimate', r.leesEst))}
+        ${select('maturity', 'Maturity', opts(MATURITY, r.maturity, '—'))}
+        ${withCheck(text('drinkBy', 'Drink by', r.drinkBy), check('drinkByEst', 'Drink-by is an estimate', r.drinkByEst))}
+      </div>`,
     ],
     red: (r) => [
       text('vineyard', 'Vineyard *', r.vineyard), text('bottle', 'Bottle *', r.bottle),
@@ -547,6 +553,42 @@
     ],
   };
 
+  const vintageYear = (v) => { const m = String(v || '').match(/\b(19|20)\d{2}\b/); return m ? Number(m[0]) : null; };
+  // First shelf whose tag fits the bottle, by the tag words used in the cellar.
+  function defaultShelf(tableId, row) {
+    const want = tableId === 'reds' ? /red/i : row.category === 'everyday' ? /everyday/i : /champagne/i;
+    const hit = state.doc.shelves.find((s) => want.test(s.tag || ''));
+    return hit ? hit.id : '';
+  }
+  function syncMoreDetails(force) {
+    const more = $('#editor-fields [data-more]'), toggle = $('#editor-fields [data-more-toggle]');
+    if (!more || !toggle) return;
+    const hasValue = [...more.querySelectorAll('input[type="text"], select')].some((el) => el.value.trim());
+    const vintage = vintageYear($('#editor-fields [name="vintage"]').value);
+    const open = force !== undefined ? force : (more.hidden ? hasValue || vintage !== null : true);
+    more.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.textContent = open ? 'Fewer details' : 'More details: disgorgement, lees, maturity, drink by';
+  }
+  // Champagne ageing suggestions, only into empty fields:
+  //   years on lees = disgorgement year - vintage year
+  //   drink by      = disgorgement year + years on lees
+  function suggestAgeing() {
+    const field = (n) => $(`#editor-fields [name="${n}"]`);
+    const vintageEl = field('vintage'), disgorgedEl = field('disgorged'), leesEl = field('lees'), drinkByEl = field('drinkBy');
+    if (!vintageEl || !disgorgedEl || !leesEl || !drinkByEl) return;
+    const vintage = vintageYear(vintageEl.value), disgorged = vintageYear(disgorgedEl.value);
+    if (vintage && disgorged && disgorged >= vintage && !leesEl.value.trim()) {
+      leesEl.value = String(disgorged - vintage);
+      field('leesEst').checked = /~/.test(disgorgedEl.value);
+    }
+    const lees = parseFloat(leesEl.value);
+    if (disgorged && lees > 0 && !drinkByEl.value.trim()) {
+      drinkByEl.value = `~${disgorged + Math.round(lees)}`;
+      field('drinkByEst').checked = true;
+    }
+  }
+
   function syncWineToggle() {
     const wine = $('#editor-fields [name="wine"]');
     if (!wine) return;
@@ -558,8 +600,10 @@
     const def = TABLES[tableId];
     editorCtx = { tableId, row, isNew, onSave };
     $('#editor-title').textContent = title || (isNew ? `Add to ${def.title}` : `Edit ${def.title} bottle`);
+    if (isNew && !row.shelf && (tableId === 'champagne' || tableId === 'reds')) row.shelf = defaultShelf(tableId, row);
     $('#editor-fields').innerHTML = FORMS[def.form](row).join('') + extras;
     syncWineToggle();
+    syncMoreDetails();
     dialog.showModal();
     const first = $('#editor-fields input, #editor-fields select');
     if (first) first.focus();
@@ -580,7 +624,19 @@
     return out;
   }
 
-  $('#editor-fields').addEventListener('change', (e) => { if (e.target.name === 'wine') syncWineToggle(); });
+  $('#editor-fields').addEventListener('change', (e) => {
+    if (e.target.name === 'wine') syncWineToggle();
+    if (e.target.name === 'vintage' && vintageYear(e.target.value) !== null) syncMoreDetails(true);
+    if (['vintage', 'disgorged', 'lees'].includes(e.target.name)) suggestAgeing();
+    if (e.target.name === 'category' && editorCtx && editorCtx.isNew) {
+      const shelf = $('#editor-fields [name="shelf"]');
+      if (shelf) shelf.value = defaultShelf(editorCtx.tableId, { category: e.target.value });
+    }
+  });
+  $('#editor-fields').addEventListener('click', (e) => {
+    const t = e.target.closest('[data-more-toggle]'); if (!t) return;
+    syncMoreDetails(t.getAttribute('aria-expanded') !== 'true');
+  });
   $('#editor-cancel').addEventListener('click', () => dialog.close());
   $('#editor-form').addEventListener('submit', (e) => {
     e.preventDefault();
